@@ -1,0 +1,116 @@
+@import "tailwindcss";
+
+/* ── Custom CSS variables for theming ─────────────────────────── */
+:root {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8fafc;
+  --bg-card: #ffffff;
+  --border: #e2e8f0;
+  --text-primary: #0f172a;
+  --text-secondary: #64748b;
+  --accent: #6366f1;
+  --accent-hover: #4f46e5;
+  --success: #10b981;
+  --danger: #ef4444;
+  --warning: #f59e0b;
+  --shadow-card: 0 1px 3px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.04);
+  --shadow-hover: 0 4px 20px rgba(99,102,241,.15);
+  --radius: 16px;
+  --radius-sm: 10px;
+  --transition: 220ms cubic-bezier(.4,0,.2,1);
+}
+
+.dark {
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --bg-card: #1e293b;
+  --border: #334155;
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --shadow-card: 0 1px 3px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.2);
+  --shadow-hover: 0 4px 20px rgba(99,102,241,.25);
+}
+
+/* ── Base ─────────────────────────────────────────────────────── */
+* { box-sizing: border-box; }
+
+body {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  transition: background var(--transition), color var(--transition);
+  margin: 0;
+}
+
+/* ── Scrollbar ────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+
+/* ── Cards ────────────────────────────────────────────────────── */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  transition: box-shadow var(--transition), transform var(--transition);
+}
+.card:hover { box-shadow: var(--shadow-hover); }
+
+/* ── Skeleton shimmer ─────────────────────────────────────────── */
+@keyframes shimmer {
+  0%   { background-position: -600px 0; }
+  100% { background-position:  600px 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg,
+    var(--border) 25%,
+    var(--bg-secondary) 50%,
+    var(--border) 75%);
+  background-size: 600px 100%;
+  animation: shimmer 1.4s infinite linear;
+  border-radius: var(--radius-sm);
+}
+
+/* ── Count-up number ─────────────────────────────────────────── */
+.stat-number {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* ── Slot grid color coding ───────────────────────────────────── */
+.slot-available {
+  background: rgba(16,185,129,.08);
+  border-color: rgba(16,185,129,.3);
+  color: #10b981;
+}
+.slot-reserved {
+  background: rgba(245,158,11,.08);
+  border-color: rgba(245,158,11,.3);
+  color: #f59e0b;
+}
+.slot-occupied {
+  background: rgba(239,68,68,.08);
+  border-color: rgba(239,68,68,.3);
+  color: #ef4444;
+}
+
+/* ── Floating label ──────────────────────────────────────────── */
+.floating-label-group { position: relative; }
+.floating-label-group input:focus + label,
+.floating-label-group input:not(:placeholder-shown) + label {
+  transform: translateY(-22px) scale(0.82);
+  color: var(--accent);
+}
+.floating-label-group label {
+  position: absolute;
+  left: 12px;
+  top: 14px;
+  color: var(--text-secondary);
+  pointer-events: none;
+  transform-origin: left;
+  transition: transform var(--transition), color var(--transition);
+}
+
+/* ── Page transition host ─────────────────────────────────────── */
+.page-host { display: block; }
