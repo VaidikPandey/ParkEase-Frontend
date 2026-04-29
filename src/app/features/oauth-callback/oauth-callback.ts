@@ -1,7 +1,6 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
-import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../core/services/auth.service';
 
 @Component({
@@ -23,45 +22,40 @@ import { AuthService } from '../../core/services/auth.service';
 })
 export class OAuthCallbackComponent implements OnInit {
   private route = inject(ActivatedRoute);
-  private http  = inject(HttpClient);
   private auth  = inject(AuthService);
 
   status = 'Completing sign in…';
   errMsg = '';
 
   ngOnInit() {
-    const params      = this.route.snapshot.queryParamMap;
-    const isNewUser   = params.get('isNewUser') === 'true';
-    const pendingRole = sessionStorage.getItem('pending_oauth_role');
+    const params    = this.route.snapshot.queryParamMap;
+    const isNewUser = params.get('isNewUser') === 'true';
+    const userId    = params.get('userId');
+    const email     = params.get('email');
+    const fullName  = params.get('fullName');
+    const role      = params.get('role') as 'DRIVER' | 'MANAGER' | 'ADMIN' | null;
+
+    if (!userId || !email || !role) {
+      this.status = 'Sign in failed.';
+      this.errMsg = 'Incomplete response from server. Please try again.';
+      return;
+    }
+
+    const user = { userId: +userId, fullName: fullName ?? email, email, role };
+    sessionStorage.setItem('user', JSON.stringify(user));
+    this.auth.currentUser.set(user);
+
+    const pendingRole = sessionStorage.getItem('pending_oauth_role') as 'DRIVER' | 'MANAGER' | null;
     sessionStorage.removeItem('pending_oauth_role');
 
-    // Cookie is already set by backend — fetch profile to get user object
-    this.status = 'Fetching your profile…';
-    this.http.get<any>('/api/v1/auth/profile', { withCredentials: true }).subscribe({
-      next: profile => {
-        const user = {
-          userId:   profile.userId,
-          fullName: profile.fullName,
-          email:    profile.email,
-          role:     profile.role as 'DRIVER' | 'MANAGER' | 'ADMIN',
-        };
-        sessionStorage.setItem('user', JSON.stringify(user));
-        this.auth.currentUser.set(user);
-
-        if (isNewUser && pendingRole && (pendingRole === 'DRIVER' || pendingRole === 'MANAGER')) {
-          this.status = 'Setting up your account…';
-          this.auth.selectRole(pendingRole as 'DRIVER' | 'MANAGER').subscribe({
-            next:  () => { window.location.href = '/dashboard'; },
-            error: () => { window.location.href = '/dashboard'; },
-          });
-        } else {
-          window.location.href = '/dashboard';
-        }
-      },
-      error: () => {
-        this.errMsg = 'Could not fetch your profile. Please try logging in again.';
-        this.status = 'Sign in failed.';
-      }
-    });
+    if (isNewUser && pendingRole && (pendingRole === 'DRIVER' || pendingRole === 'MANAGER')) {
+      this.status = 'Setting up your account…';
+      this.auth.selectRole(pendingRole).subscribe({
+        next:  () => { window.location.href = '/dashboard'; },
+        error: () => { window.location.href = '/dashboard'; },
+      });
+    } else {
+      window.location.href = '/dashboard';
+    }
   }
 }
