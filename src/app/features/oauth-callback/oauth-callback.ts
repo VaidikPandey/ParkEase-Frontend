@@ -44,8 +44,8 @@ export class OAuthCallbackComponent implements OnInit {
     }
 
     // Store tokens first so the interceptor attaches them
-    localStorage.setItem('access_token', accessToken);
-    localStorage.setItem('refresh_token', refreshToken);
+    sessionStorage.setItem('access_token', accessToken);
+    sessionStorage.setItem('refresh_token', refreshToken);
     this.auth.token.set(accessToken);
 
     this._status = 'Fetching your profile…';
@@ -63,7 +63,7 @@ export class OAuthCallbackComponent implements OnInit {
             email:    profile.email,
             role:     profile.role as 'DRIVER' | 'MANAGER' | 'ADMIN',
           };
-          localStorage.setItem('user', JSON.stringify(user));
+          sessionStorage.setItem('user', JSON.stringify(user));
           this.auth.currentUser.set(user);
 
           const isNewUser    = params.get('isNewUser') === 'true';
@@ -73,17 +73,16 @@ export class OAuthCallbackComponent implements OnInit {
           if (isNewUser && pendingRole && (pendingRole === 'DRIVER' || pendingRole === 'MANAGER')) {
             this._status = 'Setting up your account…';
             this.auth.selectRole(pendingRole as 'DRIVER' | 'MANAGER').subscribe({
-              next:  () => this.router.navigate(['/dashboard']),
-              error: () => this.router.navigate(['/dashboard']),
+              next:  () => { window.location.href = '/dashboard'; },
+              error: () => { window.location.href = '/dashboard'; },
             });
           } else {
-            this.router.navigate(['/dashboard']);
+            window.location.href = '/dashboard';
           }
         },
         error: () => {
-          // Profile call failed — still log in with token, derive basic info later
           this._status = 'Signing in…';
-          this.router.navigate(['/dashboard']);
+          window.location.href = '/dashboard';
         }
       });
   }

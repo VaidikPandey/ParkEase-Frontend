@@ -443,7 +443,7 @@ export class ManagerSlotsComponent implements OnInit, OnDestroy {
     this.parking.createLot(f).pipe(takeUntil(this.destroy$)).subscribe({
       next: lot => {
         this.myLots.update(l => [lot, ...l]);
-        this.lotForm = { name: '', address: '', city: '', latitude: 0, longitude: 0, openingTime: '08:00', closingTime: '22:00', maxCapacity: null };
+        this.lotForm = { name: '', address: '', city: '', latitude: 0, longitude: 0, openingTime: '08:00', closingTime: '22:00', maxCapacity: undefined };
         this.showLotForm.set(false);
         this.lotSaving.set(false);
       },

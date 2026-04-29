@@ -24,16 +24,16 @@ export class AuthService {
   private readonly API = '/api/v1/auth';
 
   currentUser = signal<AuthUser | null>(this.loadUser());
-  token = signal<string | null>(localStorage.getItem('access_token'));
+  token = signal<string | null>(sessionStorage.getItem('access_token'));
 
   constructor(private http: HttpClient, private router: Router) {}
 
   login(email: string, password: string): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(`${this.API}/login`, { email, password }).pipe(
       tap(res => {
-        localStorage.setItem('access_token', res.accessToken);
-        localStorage.setItem('refresh_token', res.refreshToken);
-        localStorage.setItem('user', JSON.stringify(res.user));
+        sessionStorage.setItem('access_token', res.accessToken);
+        sessionStorage.setItem('refresh_token', res.refreshToken);
+        sessionStorage.setItem('user', JSON.stringify(res.user));
         this.token.set(res.accessToken);
         this.currentUser.set(res.user);
       })
@@ -45,7 +45,7 @@ export class AuthService {
     if (token) {
       this.http.post(`${this.API}/logout`, {}).subscribe();
     }
-    localStorage.clear();
+    sessionStorage.clear();
     this.token.set(null);
     this.currentUser.set(null);
     this.router.navigate(['/login']);
@@ -54,9 +54,9 @@ export class AuthService {
   selectRole(role: 'DRIVER' | 'MANAGER'): Observable<AuthResponse> {
     return this.http.patch<AuthResponse>(`${this.API}/role`, { role }).pipe(
       tap(res => {
-        localStorage.setItem('access_token', res.accessToken);
-        localStorage.setItem('refresh_token', res.refreshToken);
-        localStorage.setItem('user', JSON.stringify(res.user));
+        sessionStorage.setItem('access_token', res.accessToken);
+        sessionStorage.setItem('refresh_token', res.refreshToken);
+        sessionStorage.setItem('user', JSON.stringify(res.user));
         this.token.set(res.accessToken);
         this.currentUser.set(res.user);
       })
@@ -72,7 +72,7 @@ export class AuthService {
   }
 
   private loadUser(): AuthUser | null {
-    const raw = localStorage.getItem('user');
+    const raw = sessionStorage.getItem('user');
     return raw ? JSON.parse(raw) : null;
   }
 }

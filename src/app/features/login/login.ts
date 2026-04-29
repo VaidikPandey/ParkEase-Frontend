@@ -98,7 +98,7 @@ const DEMO: Record<string, { email: string; password: string; color: string }> =
                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/>
               </svg>
               <span style="font-size:12px;font-weight:600;color:#f4212e;">Admin Portal</span>
-              <a routerLink="/" style="margin-left:auto;font-size:11px;color:var(--text-secondary);text-decoration:none;">← Back</a>
+              <a routerLink="/home" style="margin-left:auto;font-size:11px;color:var(--text-secondary);text-decoration:none;">← Back</a>
             </div>
           }
 
@@ -326,7 +326,7 @@ const DEMO: Record<string, { email: string; password: string; color: string }> =
           }
 
           <p class="text-center mt-5" style="font-size:13px;color:var(--text-secondary);">
-            <a routerLink="/" style="color:var(--accent);text-decoration:none;">← Back to home</a>
+            <a routerLink="/home" style="color:var(--accent);text-decoration:none;">← Back to home</a>
           </p>
         </div>
       </div>
@@ -415,7 +415,7 @@ export class LoginComponent implements OnInit {
     this.loading.set(true);
     this.error.set('');
     this.auth.login(this.email, this.password).subscribe({
-      next: () => this.router.navigate(['/dashboard']),
+      next: () => { window.location.href = '/dashboard'; },
       error: err => {
         this.error.set(err?.error?.message ?? 'Invalid credentials.');
         this.loading.set(false);
@@ -441,16 +441,16 @@ export class LoginComponent implements OnInit {
 
     this.http.post<any>('/api/v1/auth/register', body).pipe(
       tap(res => {
-        localStorage.setItem('access_token',  res.accessToken);
-        localStorage.setItem('refresh_token', res.refreshToken);
-        localStorage.setItem('user', JSON.stringify(res.user));
+        sessionStorage.setItem('access_token',  res.accessToken);
+        sessionStorage.setItem('refresh_token', res.refreshToken);
+        sessionStorage.setItem('user', JSON.stringify(res.user));
         this.auth.token.set(res.accessToken);
         this.auth.currentUser.set(res.user);
       })
     ).subscribe({
       next: () => {
         this.regSuccess.set(true);
-        setTimeout(() => this.router.navigate(['/dashboard']), 800);
+        setTimeout(() => { window.location.href = '/dashboard'; }, 800);
       },
       error: err => {
         this.regError.set(err?.error?.message ?? 'Registration failed. Please try again.');

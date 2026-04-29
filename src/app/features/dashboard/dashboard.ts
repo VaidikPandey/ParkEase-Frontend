@@ -209,7 +209,7 @@ export class DashboardComponent implements OnInit, OnDestroy, AfterViewInit {
           plugins: { legend: { display: false } },
           scales: {
             x: { grid: { color: gridColor }, ticks: { color: textColor } },
-            y: { grid: { color: gridColor }, ticks: { color: textColor }, beginAtZero: true }
+            y: { grid: { color: gridColor }, ticks: { color: textColor, stepSize: 1, precision: 0 }, beginAtZero: true }
           }
         }
       } as ChartConfiguration);

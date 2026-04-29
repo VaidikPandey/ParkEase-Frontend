@@ -47,7 +47,6 @@ export class ChartSkeletonComponent {}
 @Component({
   selector: 'app-slot-skeleton',
   standalone: true,
-  imports: [SkeletonComponent],
   template: `
     <div class="grid gap-3" style="grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));">
       @for (i of items; track i) {

@@ -1,34 +1,41 @@
 @import "tailwindcss";
 
-/* ── Custom CSS variables for theming ─────────────────────────── */
+/* ── Default: dark (X.com-style black) ───────────────────────── */
 :root {
-  --bg-primary: #ffffff;
-  --bg-secondary: #f8fafc;
-  --bg-card: #ffffff;
-  --border: #e2e8f0;
-  --text-primary: #0f172a;
-  --text-secondary: #64748b;
-  --accent: #6366f1;
-  --accent-hover: #4f46e5;
+  --bg-primary:   #000000;
+  --bg-secondary: #16181c;
+  --bg-card:      #16181c;
+  --bg-hover:     #1d1f23;
+  --border:       #2f3336;
+  --text-primary: #e7e9ea;
+  --text-secondary: #71767b;
+  --accent:       #1d9bf0;
+  --accent-hover: #1a8cd8;
+  --accent-dim:   rgba(29,155,240,.12);
   --success: #10b981;
-  --danger: #ef4444;
+  --danger:  #ef4444;
   --warning: #f59e0b;
-  --shadow-card: 0 1px 3px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.04);
-  --shadow-hover: 0 4px 20px rgba(99,102,241,.15);
-  --radius: 16px;
+  --shadow-card:  0 1px 3px rgba(0,0,0,.5), 0 4px 16px rgba(0,0,0,.4);
+  --shadow-hover: 0 4px 24px rgba(29,155,240,.2);
+  --radius:    16px;
   --radius-sm: 10px;
   --transition: 220ms cubic-bezier(.4,0,.2,1);
 }
 
-.dark {
-  --bg-primary: #0f172a;
-  --bg-secondary: #1e293b;
-  --bg-card: #1e293b;
-  --border: #334155;
-  --text-primary: #f1f5f9;
-  --text-secondary: #94a3b8;
-  --shadow-card: 0 1px 3px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.2);
-  --shadow-hover: 0 4px 20px rgba(99,102,241,.25);
+/* ── Light mode (opt-in) ──────────────────────────────────────── */
+.light {
+  --bg-primary:   #ffffff;
+  --bg-secondary: #f7f9f9;
+  --bg-card:      #ffffff;
+  --bg-hover:     #eff3f4;
+  --border:       #cfd9de;
+  --text-primary: #0f1419;
+  --text-secondary: #536471;
+  --accent:       #1d9bf0;
+  --accent-hover: #1a8cd8;
+  --accent-dim:   rgba(29,155,240,.1);
+  --shadow-card:  0 1px 3px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.04);
+  --shadow-hover: 0 4px 20px rgba(29,155,240,.15);
 }
 
 /* ── Base ─────────────────────────────────────────────────────── */
@@ -110,6 +117,84 @@ body {
   pointer-events: none;
   transform-origin: left;
   transition: transform var(--transition), color var(--transition);
+}
+
+/* ── Grid background pattern ─────────────────────────────────── */
+.grid-bg {
+  background-image:
+    linear-gradient(var(--border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border) 1px, transparent 1px);
+  background-size: 48px 48px;
+  opacity: .35;
+}
+
+/* ── Glowing orbs ────────────────────────────────────────────── */
+.orb {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  filter: blur(1px);
+}
+
+/* ── Nav item hover (sidebar + landing nav) ──────────────────── */
+.nav-item:hover {
+  background: var(--bg-hover) !important;
+  color: var(--text-primary) !important;
+}
+
+/* ── Accent button ───────────────────────────────────────────── */
+.btn-accent {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 9999px;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background var(--transition), transform var(--transition);
+}
+.btn-accent:hover {
+  background: var(--accent-hover);
+  transform: translateY(-1px);
+}
+
+/* ── Floating input group (used by login/register) ───────────── */
+.floating-group {
+  position: relative;
+}
+.floating-group input {
+  width: 100%;
+  padding: 22px 14px 8px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--text-primary);
+  font-size: 15px;
+  outline: none;
+  transition: border-color var(--transition), box-shadow var(--transition);
+  box-sizing: border-box;
+}
+.floating-group input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(29,155,240,.15);
+}
+.floating-group label {
+  position: absolute;
+  left: 14px;
+  top: 15px;
+  font-size: 15px;
+  color: var(--text-secondary);
+  pointer-events: none;
+  transform-origin: left top;
+  transition: transform var(--transition), font-size var(--transition), color var(--transition);
+}
+.floating-group input:focus + label,
+.floating-group input:not(:placeholder-shown) + label {
+  transform: translateY(-8px) scale(0.76);
+  color: var(--accent);
 }
 
 /* ── Page transition host ─────────────────────────────────────── */
