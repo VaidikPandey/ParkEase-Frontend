@@ -10,17 +10,9 @@ export const refreshInterceptor: HttpInterceptorFn = (req, next) => {
 
   return next(req).pipe(
     catchError((err: HttpErrorResponse) => {
-      const refreshToken = sessionStorage.getItem('refresh_token');
-      if (err.status === 401 && refreshToken && !req.url.includes('/auth/refresh') && !req.url.includes('/auth/login')) {
-        return http.post<any>('/api/v1/auth/refresh', {}, {
-          headers: { 'X-Refresh-Token': refreshToken }
-        }).pipe(
-          switchMap(res => {
-            sessionStorage.setItem('access_token', res.accessToken);
-            auth.token.set(res.accessToken);
-            const retried = req.clone({ setHeaders: { Authorization: `Bearer ${res.accessToken}` } });
-            return next(retried);
-          }),
+      if (err.status === 401 && !req.url.includes('/auth/refresh') && !req.url.includes('/auth/login')) {
+        return http.post<any>('/api/v1/auth/refresh', {}, { withCredentials: true }).pipe(
+          switchMap(() => next(req.clone({ withCredentials: true }))),
           catchError(() => { auth.logout(); return throwError(() => err); })
         );
       }

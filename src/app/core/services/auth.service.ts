@@ -12,8 +12,6 @@ export interface AuthUser {
 }
 
 export interface AuthResponse {
-  accessToken: string;
-  refreshToken: string;
   tokenType: string;
   expiresIn: number;
   user: AuthUser;
@@ -24,51 +22,36 @@ export class AuthService {
   private readonly API = '/api/v1/auth';
 
   currentUser = signal<AuthUser | null>(this.loadUser());
-  token = signal<string | null>(sessionStorage.getItem('access_token'));
 
   constructor(private http: HttpClient, private router: Router) {}
 
   login(email: string, password: string): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(`${this.API}/login`, { email, password }).pipe(
+    return this.http.post<AuthResponse>(`${this.API}/login`, { email, password }, { withCredentials: true }).pipe(
       tap(res => {
-        sessionStorage.setItem('access_token', res.accessToken);
-        sessionStorage.setItem('refresh_token', res.refreshToken);
         sessionStorage.setItem('user', JSON.stringify(res.user));
-        this.token.set(res.accessToken);
         this.currentUser.set(res.user);
       })
     );
   }
 
   logout(): void {
-    const token = this.token();
-    if (token) {
-      this.http.post(`${this.API}/logout`, {}).subscribe();
-    }
+    this.http.post(`${this.API}/logout`, {}, { withCredentials: true }).subscribe();
     sessionStorage.clear();
-    this.token.set(null);
     this.currentUser.set(null);
-    this.router.navigate(['/login']);
+    window.location.href = '/login';
   }
 
   selectRole(role: 'DRIVER' | 'MANAGER'): Observable<AuthResponse> {
-    return this.http.patch<AuthResponse>(`${this.API}/role`, { role }).pipe(
+    return this.http.patch<AuthResponse>(`${this.API}/role`, { role }, { withCredentials: true }).pipe(
       tap(res => {
-        sessionStorage.setItem('access_token', res.accessToken);
-        sessionStorage.setItem('refresh_token', res.refreshToken);
         sessionStorage.setItem('user', JSON.stringify(res.user));
-        this.token.set(res.accessToken);
         this.currentUser.set(res.user);
       })
     );
   }
 
   isLoggedIn(): boolean {
-    return !!this.token();
-  }
-
-  getAuthHeaders(): Record<string, string> {
-    return { Authorization: `Bearer ${this.token()}` };
+    return !!this.currentUser();
   }
 
   private loadUser(): AuthUser | null {

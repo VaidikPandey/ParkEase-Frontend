@@ -439,12 +439,9 @@ export class LoginComponent implements OnInit {
       role:     this.regRole(),
     };
 
-    this.http.post<any>('/api/v1/auth/register', body).pipe(
+    this.http.post<any>('/api/v1/auth/register', body, { withCredentials: true }).pipe(
       tap(res => {
-        sessionStorage.setItem('access_token',  res.accessToken);
-        sessionStorage.setItem('refresh_token', res.refreshToken);
         sessionStorage.setItem('user', JSON.stringify(res.user));
-        this.auth.token.set(res.accessToken);
         this.auth.currentUser.set(res.user);
       })
     ).subscribe({

@@ -3,8 +3,8 @@ import { inject } from '@angular/core';
 import { Router } from '@angular/router';
 
 const authGuard = () => {
-  const hasToken = !!sessionStorage.getItem('access_token');
-  return hasToken ? true : inject(Router).createUrlTree(['/login']);
+  const hasUser = !!sessionStorage.getItem('user');
+  return hasUser ? true : inject(Router).createUrlTree(['/login']);
 };
 
 export const routes: Routes = [
