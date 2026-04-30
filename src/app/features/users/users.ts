@@ -9,6 +9,8 @@ interface User {
   phone: string; isActive: boolean; createdAt: string;
 }
 
+interface ComposeEmail { to: string; subject: string; body: string; }
+
 const ROLE_COLOR: Record<string, string> = { ADMIN: '#f4212e', MANAGER: '#ffd400', DRIVER: '#1d9bf0' };
 
 @Component({
@@ -99,6 +101,12 @@ const ROLE_COLOR: Record<string, string> = { ADMIN: '#f4212e', MANAGER: '#ffd400
 
                 <!-- Actions -->
                 <div style="flex-shrink:0;display:flex;gap:8px;">
+                  <button (click)="openCompose(u)"
+                          style="font-size:12px;padding:6px 14px;border-radius:9999px;font-weight:600;cursor:pointer;background:rgba(29,155,240,.07);color:#1d9bf0;border:1px solid rgba(29,155,240,.15);transition:opacity 150ms;"
+                          onmouseenter="this.style.opacity='.75'" onmouseleave="this.style.opacity='1'"
+                          title="Send email">
+                    ✉
+                  </button>
                   @if (u.role !== 'ADMIN') {
                     <button (click)="toggleUser(u)"
                             style="font-size:12px;padding:6px 14px;border-radius:9999px;font-weight:600;cursor:pointer;border:none;transition:opacity 150ms;"
@@ -117,6 +125,46 @@ const ROLE_COLOR: Record<string, string> = { ADMIN: '#f4212e', MANAGER: '#ffd400
               </div>
             }
           }
+        </div>
+      }
+
+      <!-- Compose email modal -->
+      @if (compose()) {
+        <div style="position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.78);backdrop-filter:blur(6px);">
+          <div style="background:#0f0f0f;border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:28px;width:100%;max-width:480px;" class="anim-in">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+              <div style="width:38px;height:38px;border-radius:10px;background:rgba(29,155,240,.1);display:flex;align-items:center;justify-content:center;font-size:18px;">✉</div>
+              <div>
+                <h3 style="font-size:16px;font-weight:800;color:#e7e9ea;margin:0;">Send Email</h3>
+                <p style="font-size:12px;color:#71767b;margin:0;">{{ compose()!.to }}</p>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:12px;">
+              <div>
+                <label style="display:block;font-size:11px;color:#71767b;font-weight:700;margin-bottom:6px;letter-spacing:.05em;text-transform:uppercase;">Subject</label>
+                <input [(ngModel)]="compose()!.subject" type="text" placeholder="Subject…"
+                       style="width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:10px 14px;font-size:14px;color:#e7e9ea;outline:none;box-sizing:border-box;transition:border-color 150ms;"
+                       onfocus="this.style.borderColor='#1d9bf0'" onblur="this.style.borderColor='rgba(255,255,255,.08)'"/>
+              </div>
+              <div>
+                <label style="display:block;font-size:11px;color:#71767b;font-weight:700;margin-bottom:6px;letter-spacing:.05em;text-transform:uppercase;">Message</label>
+                <textarea [(ngModel)]="compose()!.body" placeholder="Write your message…" rows="5"
+                          style="width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:10px 14px;font-size:14px;color:#e7e9ea;outline:none;box-sizing:border-box;resize:vertical;transition:border-color 150ms;font-family:inherit;"
+                          onfocus="this.style.borderColor='#1d9bf0'" onblur="this.style.borderColor='rgba(255,255,255,.08)'"></textarea>
+              </div>
+            </div>
+            <div style="display:flex;gap:10px;margin-top:20px;">
+              <button (click)="sendEmail()" [disabled]="sending()"
+                      style="flex:1;padding:11px;border-radius:12px;background:#1d9bf0;color:#fff;border:none;font-size:14px;font-weight:700;cursor:pointer;transition:opacity 150ms;"
+                      [style.opacity]="sending() ? '.5' : '1'">
+                {{ sending() ? 'Sending…' : 'Send Email' }}
+              </button>
+              <button (click)="compose.set(null)"
+                      style="flex:1;padding:11px;border-radius:12px;background:rgba(255,255,255,.05);color:#e7e9ea;border:1px solid rgba(255,255,255,.08);font-size:14px;font-weight:600;cursor:pointer;">
+                Cancel
+              </button>
+            </div>
+          </div>
         </div>
       }
 
@@ -155,10 +203,12 @@ export class UsersComponent implements OnInit {
   private http  = inject(HttpClient);
   private toast = inject(ToastService);
 
-  allUsers     = signal<User[]>([]);
-  filteredList = signal<User[]>([]);
-  loading      = signal(true);
+  allUsers      = signal<User[]>([]);
+  filteredList  = signal<User[]>([]);
+  loading       = signal(true);
   confirmDelete = signal<User | null>(null);
+  compose       = signal<ComposeEmail | null>(null);
+  sending       = signal(false);
   search     = '';
   roleFilter = '';
 
@@ -195,11 +245,43 @@ export class UsersComponent implements OnInit {
 
   deleteUser(u: User) { this.confirmDelete.set(u); }
 
+  openCompose(u: User) {
+    this.compose.set({ to: u.email, subject: '', body: '' });
+  }
+
+  sendEmail() {
+    const c = this.compose();
+    if (!c || !c.subject.trim() || !c.body.trim()) return;
+    this.sending.set(true);
+    this.http.post('/api/v1/notifications/admin/email', { to: c.to, subject: c.subject, body: c.body }).subscribe({
+      next: () => {
+        this.compose.set(null);
+        this.sending.set(false);
+        this.toast.success('Email sent.');
+      },
+      error: err => {
+        this.sending.set(false);
+        this.toast.error(err?.error?.message ?? 'Failed to send email.');
+      }
+    });
+  }
+
   confirmDeleteUser() {
     const u = this.confirmDelete();
     if (!u) return;
+
     this.http.delete(`/api/v1/admin/users/${u.userId}`).subscribe({
       next: () => {
+        // cascade: delete role-specific data then notifications
+        const cascades: any[] = [];
+        if (u.role === 'MANAGER') {
+          cascades.push(this.http.delete(`/api/v1/parking/admin/manager/${u.userId}/lots`).subscribe({ error: () => {} }));
+        }
+        if (u.role === 'DRIVER') {
+          cascades.push(this.http.delete(`/api/v1/bookings/admin/driver/${u.userId}`).subscribe({ error: () => {} }));
+        }
+        this.http.delete(`/api/v1/notifications/admin/recipient/${u.userId}/all`).subscribe({ error: () => {} });
+
         this.allUsers.update(list => list.filter(x => x.userId !== u.userId));
         this.applyFilter();
         this.confirmDelete.set(null);

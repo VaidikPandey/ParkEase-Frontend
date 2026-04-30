@@ -86,7 +86,7 @@ export class ParkingService {
   }
 
   bulkCreateSpots(lotId: number, spots: Partial<ParkingSpot>[]): Observable<ParkingSpot[]> {
-    return this.http.post<ParkingSpot[]>(`${this.PARKING}/manager/lots/${lotId}/spots/bulk`, spots);
+    return this.http.post<ParkingSpot[]>(`${this.PARKING}/manager/lots/${lotId}/spots/bulk`, { spots });
   }
 
   updateSpot(spotId: number, body: Partial<ParkingSpot>): Observable<ParkingSpot> {
