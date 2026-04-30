@@ -1,105 +1,74 @@
 import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { trigger, transition, style, animate, query, stagger } from '@angular/animations';
 import { Subject, takeUntil, forkJoin } from 'rxjs';
 import { ParkingService } from '../../../core/services/parking.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { PaymentService } from '../../../core/services/payment.service';
 import { ParkingSpot, ParkingLot, SpotType } from '../../../core/models/parking.models';
 
+const spotStatusColor: Record<string, string> = { AVAILABLE: '#00ba7c', RESERVED: '#ffd400', OCCUPIED: '#f4212e' };
+const spotStatusBg:    Record<string, string> = { AVAILABLE: 'rgba(0,186,124,.12)', RESERVED: 'rgba(255,212,0,.1)', OCCUPIED: 'rgba(244,33,46,.1)' };
+
 @Component({
   selector: 'app-admin-slots',
   standalone: true,
   imports: [CommonModule, FormsModule],
-  animations: [
-    trigger('fadeUp', [
-      transition(':enter', [
-        style({ opacity: 0, transform: 'translateY(16px)' }),
-        animate('360ms cubic-bezier(.4,0,.2,1)', style({ opacity: 1, transform: 'translateY(0)' }))
-      ])
-    ]),
-    trigger('fadeIn', [transition(':enter', [style({ opacity: 0 }), animate('200ms ease', style({ opacity: 1 }))])]),
-    trigger('slotAnim', [
-      transition('* => *', [
-        query(':enter', [
-          style({ opacity: 0, transform: 'scale(.9)' }),
-          stagger(20, [animate('240ms cubic-bezier(.4,0,.2,1)', style({ opacity: 1, transform: 'scale(1)' }))])
-        ], { optional: true })
-      ])
-    ]),
-  ],
   template: `
-    <div class="p-6 space-y-5 page-host" @fadeUp>
+    <div style="max-width:1100px;margin:0 auto;padding:28px 24px;min-height:100%;" class="anim-in">
 
       <!-- Header + tabs -->
-      <div class="flex items-center justify-between flex-wrap gap-4">
+      <div style="margin-bottom:28px;padding-bottom:20px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;">
         <div>
-          <h2 style="font-size:22px;font-weight:700;color:var(--text-primary);margin:0;">Parking Management</h2>
-          <p style="color:var(--text-secondary);font-size:14px;margin:4px 0 0;">System-wide lot and spot control</p>
+          <h1 style="font-size:22px;font-weight:800;color:#e7e9ea;margin:0 0 4px;letter-spacing:-.3px;">Parking Management</h1>
+          <p style="font-size:13px;color:#71767b;margin:0;">System-wide lot and spot control</p>
         </div>
-        <div class="flex rounded-xl p-1" style="background:var(--bg-hover);border:1px solid var(--border);">
-          <button (click)="adminTab.set('lots')"
-                  class="px-4 py-1.5 rounded-lg text-sm font-semibold transition-all"
-                  [style.background]="adminTab() === 'lots' ? 'var(--bg-card)' : 'transparent'"
-                  [style.color]="adminTab() === 'lots' ? 'var(--text-primary)' : 'var(--text-secondary)'"
-                  style="border:none;cursor:pointer;">All Lots</button>
-          <button (click)="adminTab.set('pending')"
-                  class="px-4 py-1.5 rounded-lg text-sm font-semibold transition-all flex items-center gap-1.5"
-                  [style.background]="adminTab() === 'pending' ? 'var(--bg-card)' : 'transparent'"
-                  [style.color]="adminTab() === 'pending' ? 'var(--text-primary)' : 'var(--text-secondary)'"
-                  style="border:none;cursor:pointer;">
-            Pending
-            @if (adminPendingLots().length) {
-              <span class="px-1.5 py-0.5 rounded-full text-xs font-bold" style="background:#ffd40020;color:#ffd400;">{{ adminPendingLots().length }}</span>
-            }
-          </button>
-          <button (click)="adminTab.set('spots')"
-                  class="px-4 py-1.5 rounded-lg text-sm font-semibold transition-all"
-                  [style.background]="adminTab() === 'spots' ? 'var(--bg-card)' : 'transparent'"
-                  [style.color]="adminTab() === 'spots' ? 'var(--text-primary)' : 'var(--text-secondary)'"
-                  style="border:none;cursor:pointer;">Spots</button>
-          <button (click)="adminTab.set('revenue'); loadAdminRevenue()"
-                  class="px-4 py-1.5 rounded-lg text-sm font-semibold transition-all"
-                  [style.background]="adminTab() === 'revenue' ? 'var(--bg-card)' : 'transparent'"
-                  [style.color]="adminTab() === 'revenue' ? 'var(--text-primary)' : 'var(--text-secondary)'"
-                  style="border:none;cursor:pointer;">Revenue</button>
+        <div style="display:flex;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:4px;gap:4px;flex-wrap:wrap;">
+          @for (tab of adminTabs; track tab.id) {
+            <button (click)="switchAdminTab(tab.id)"
+                    style="padding:7px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all 150ms;display:flex;align-items:center;gap:6px;"
+                    [style.background]="adminTab() === tab.id ? 'rgba(255,255,255,.08)' : 'transparent'"
+                    [style.color]="adminTab() === tab.id ? '#e7e9ea' : '#71767b'">
+              {{ tab.label }}
+              @if (tab.id === 'pending' && adminPendingLots().length) {
+                <span style="padding:1px 6px;border-radius:9999px;font-size:10px;font-weight:700;background:rgba(255,212,0,.15);color:#ffd400;">{{ adminPendingLots().length }}</span>
+              }
+            </button>
+          }
         </div>
       </div>
 
       <!-- ALL LOTS TAB -->
       @if (adminTab() === 'lots') {
-        <div class="grid gap-4" style="grid-template-columns:repeat(auto-fill,minmax(280px,1fr));" @fadeUp>
-          @for (lot of allLots(); track lot.lotId) {
-            <div class="card p-5"
-                 style="transition:transform 200ms ease,box-shadow 200ms ease;"
-                 onmouseenter="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 24px rgba(0,0,0,.12)'"
-                 onmouseleave="this.style.transform='';this.style.boxShadow=''">
-              <div class="flex items-start justify-between mb-2">
-                <div>
-                  <p style="font-size:15px;font-weight:700;color:var(--text-primary);margin:0;">{{ lot.name }}</p>
-                  <p style="font-size:12px;color:var(--text-secondary);margin:2px 0 0;">{{ lot.address }}, {{ lot.city }}</p>
+        @if (!allLots().length) {
+          <div style="background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:56px 24px;text-align:center;">
+            <p style="font-size:14px;color:#71767b;margin:0;">No lots registered yet.</p>
+          </div>
+        } @else {
+          <div style="background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);border-radius:16px;overflow:hidden;" class="anim-in anim-d1">
+            @for (lot of allLots(); track lot.lotId; let last = $last) {
+              <div style="display:flex;align-items:center;gap:14px;padding:14px 20px;transition:background 120ms ease;"
+                   [style.border-bottom]="last ? 'none' : '1px solid rgba(255,255,255,.04)'"
+                   onmouseenter="this.style.background='rgba(255,255,255,.03)'"
+                   onmouseleave="this.style.background='transparent'">
+                <div style="width:40px;height:40px;border-radius:10px;background:rgba(29,155,240,.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                  <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="#1d9bf0" stroke-width="1.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z"/>
+                  </svg>
                 </div>
-                <span class="text-xs font-bold px-2 py-0.5 rounded-full"
-                      [style.background]="lotStatusBg(lot.status)"
-                      [style.color]="lotStatusColor(lot.status)">{{ lot.status }}</span>
-              </div>
-              <div class="flex items-center justify-between mt-4">
-                <span style="font-size:12px;color:var(--text-secondary);">
-                  {{ lot.availableSpots }}/{{ lot.totalSpots }} available · {{ lot.openingTime }}–{{ lot.closingTime }}
-                </span>
+                <div style="flex:1;min-width:0;">
+                  <p style="font-size:14px;font-weight:700;color:#e7e9ea;margin:0 0 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ lot.name }}</p>
+                  <p style="font-size:12px;color:#71767b;margin:0;">{{ lot.address }}, {{ lot.city }} · {{ lot.availableSpots }}/{{ lot.totalSpots }} avail · {{ lot.openingTime }}–{{ lot.closingTime }}</p>
+                </div>
+                <span style="font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;letter-spacing:.06em;text-transform:uppercase;flex-shrink:0;"
+                      [style.background]="lotStatusBg(lot.status)" [style.color]="lotStatusColor(lot.status)">{{ lot.status }}</span>
                 <button (click)="adminViewSpots(lot.lotId)"
-                        class="text-xs px-3 py-1.5 rounded-full font-semibold"
-                        style="background:var(--accent-dim);color:var(--accent);border:1px solid rgba(29,155,240,.2);cursor:pointer;">
+                        style="font-size:12px;padding:6px 12px;border-radius:9999px;font-weight:600;background:rgba(29,155,240,.1);color:#1d9bf0;border:none;cursor:pointer;transition:opacity 150ms;flex-shrink:0;"
+                        onmouseenter="this.style.opacity='.75'" onmouseleave="this.style.opacity='1'">
                   View Spots
                 </button>
               </div>
-            </div>
-          }
-        </div>
-        @if (!allLots().length) {
-          <div class="card p-12 flex flex-col items-center text-center" @fadeUp>
-            <p style="font-size:15px;color:var(--text-secondary);">No lots registered yet.</p>
+            }
           </div>
         }
       }
@@ -107,39 +76,38 @@ import { ParkingSpot, ParkingLot, SpotType } from '../../../core/models/parking.
       <!-- PENDING TAB -->
       @if (adminTab() === 'pending') {
         @if (!adminPendingLots().length) {
-          <div class="card p-16 flex flex-col items-center text-center" @fadeUp>
-            <svg width="40" height="40" fill="none" viewBox="0 0 24 24" stroke="var(--text-secondary)" stroke-width="1.5" class="mb-3">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
-            <p style="font-size:15px;font-weight:600;color:var(--text-primary);margin:0 0 4px;">All caught up</p>
-            <p style="font-size:13px;color:var(--text-secondary);margin:0;">No lots pending approval.</p>
+          <div style="background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:64px 24px;display:flex;flex-direction:column;align-items:center;text-align:center;" class="anim-in anim-d1">
+            <div style="width:52px;height:52px;border-radius:50%;background:rgba(0,186,124,.1);display:flex;align-items:center;justify-content:center;margin-bottom:16px;">
+              <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="#00ba7c" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+            </div>
+            <p style="font-size:15px;font-weight:700;color:#e7e9ea;margin:0 0 6px;">All caught up</p>
+            <p style="font-size:13px;color:#71767b;margin:0;">No lots pending approval.</p>
           </div>
         } @else {
-          <div class="space-y-3" @fadeUp>
-            @for (lot of adminPendingLots(); track lot.lotId) {
-              <div class="card p-5">
-                <div class="flex items-start justify-between mb-3">
-                  <div>
-                    <p style="font-size:16px;font-weight:700;color:var(--text-primary);margin:0;">{{ lot.name }}</p>
-                    <p style="font-size:12px;color:var(--text-secondary);margin:2px 0 0;">{{ lot.address }}, {{ lot.city }}</p>
-                    <p style="font-size:12px;color:var(--text-secondary);margin:2px 0 0;">
-                      Opens {{ lot.openingTime }} – Closes {{ lot.closingTime }}
-                    </p>
-                  </div>
-                  <span class="px-2 py-0.5 rounded-full text-xs font-bold"
-                        style="background:rgba(255,212,0,.15);color:#ffd400;">PENDING</span>
+          <div style="background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);border-radius:16px;overflow:hidden;" class="anim-in anim-d1">
+            @for (lot of adminPendingLots(); track lot.lotId; let last = $last) {
+              <div style="display:flex;align-items:center;gap:14px;padding:16px 20px;transition:background 120ms ease;"
+                   [style.border-bottom]="last ? 'none' : '1px solid rgba(255,255,255,.04)'"
+                   onmouseenter="this.style.background='rgba(255,255,255,.03)'"
+                   onmouseleave="this.style.background='transparent'">
+                <div style="flex:1;min-width:0;">
+                  <p style="font-size:14px;font-weight:700;color:#e7e9ea;margin:0 0 2px;">{{ lot.name }}</p>
+                  <p style="font-size:12px;color:#71767b;margin:0;">{{ lot.address }}, {{ lot.city }} · {{ lot.openingTime }} – {{ lot.closingTime }}</p>
                 </div>
-                <div class="flex gap-3 mt-4">
+                <span style="font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;background:rgba(255,212,0,.12);color:#ffd400;letter-spacing:.06em;flex-shrink:0;">PENDING</span>
+                <div style="display:flex;gap:8px;flex-shrink:0;">
                   <button (click)="adminApproveLot(lot.lotId)"
-                          class="flex-1 py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-2"
-                          style="background:rgba(0,186,124,.1);color:#00ba7c;border:1px solid rgba(0,186,124,.25);cursor:pointer;">
-                    <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+                          style="font-size:12px;padding:7px 14px;border-radius:9999px;font-weight:600;background:rgba(0,186,124,.1);color:#00ba7c;border:none;cursor:pointer;display:flex;align-items:center;gap:5px;transition:opacity 150ms;"
+                          onmouseenter="this.style.opacity='.75'" onmouseleave="this.style.opacity='1'">
+                    <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
                     Approve
                   </button>
                   <button (click)="adminRejectLot(lot.lotId)"
-                          class="flex-1 py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-2"
-                          style="background:rgba(244,33,46,.08);color:#f4212e;border:1px solid rgba(244,33,46,.2);cursor:pointer;">
-                    <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                          style="font-size:12px;padding:7px 14px;border-radius:9999px;font-weight:600;background:rgba(244,33,46,.08);color:#f4212e;border:none;cursor:pointer;display:flex;align-items:center;gap:5px;transition:opacity 150ms;"
+                          onmouseenter="this.style.opacity='.75'" onmouseleave="this.style.opacity='1'">
+                    <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
                     Reject
                   </button>
                 </div>
@@ -151,158 +119,162 @@ import { ParkingSpot, ParkingLot, SpotType } from '../../../core/models/parking.
 
       <!-- SPOTS TAB -->
       @if (adminTab() === 'spots') {
-        <div class="flex flex-wrap gap-3 items-center">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap;">
           <select [(ngModel)]="adminLotId" (ngModelChange)="onAdminLotChange()"
-                  class="px-3 py-2 rounded-xl text-sm"
-                  style="background:var(--bg-card);border:1px solid var(--border);color:var(--text-primary);outline:none;">
+                  style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:9px 14px;font-size:13px;color:#e7e9ea;outline:none;cursor:pointer;">
             @for (lot of allLots(); track lot.lotId) {
-              <option [value]="lot.lotId">{{ lot.name }}</option>
+              <option [value]="lot.lotId" style="background:#1c1c1c;">{{ lot.name }}</option>
             }
           </select>
-          <div class="flex gap-3 ml-auto flex-wrap">
+          <div style="margin-left:auto;display:flex;gap:14px;">
             @for (leg of legend; track leg.label) {
-              <div class="flex items-center gap-1.5">
-                <div class="w-2.5 h-2.5 rounded-full" [style.background]="leg.color"></div>
-                <span style="font-size:12px;color:var(--text-secondary);">{{ leg.label }}</span>
+              <div style="display:flex;align-items:center;gap:6px;">
+                <div style="width:8px;height:8px;border-radius:50%;" [style.background]="leg.color"></div>
+                <span style="font-size:12px;color:#71767b;">{{ leg.label }}</span>
               </div>
             }
           </div>
         </div>
 
         @if (loadingSpots()) {
-          <div class="grid gap-2" style="grid-template-columns:repeat(auto-fill,minmax(90px,1fr));">
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px;">
             @for (i of [1,2,3,4,5,6,7,8]; track i) {
-              <div class="rounded-2xl animate-pulse" style="height:90px;background:var(--bg-card);"></div>
+              <div style="background:rgba(255,255,255,.025);border-radius:12px;height:90px;animation:pulse 1.5s ease-in-out infinite;"></div>
             }
           </div>
         } @else if (!allSpots().length) {
-          <div class="card p-12 flex flex-col items-center text-center" @fadeUp>
-            <p style="font-size:15px;color:var(--text-secondary);">No spots found for this lot.</p>
+          <div style="background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:56px 24px;text-align:center;">
+            <p style="font-size:14px;color:#71767b;margin:0;">No spots found for this lot.</p>
           </div>
         } @else {
-          <div class="grid gap-2" [@slotAnim]="allSpots().length"
-               style="grid-template-columns:repeat(auto-fill,minmax(100px,1fr));">
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px;">
             @for (spot of allSpots(); track spot.spotId) {
-              <div class="flex flex-col items-center justify-between rounded-2xl border-2 p-2"
-                   style="min-height:100px;"
-                   [class.slot-available]="spot.status === 'AVAILABLE'"
-                   [class.slot-reserved]="spot.status === 'RESERVED'"
-                   [class.slot-occupied]="spot.status === 'OCCUPIED'">
-                <div class="flex flex-col items-center flex-1 justify-center">
-                  <span style="font-size:13px;font-weight:700;">{{ spot.spotNumber }}</span>
-                  <span style="font-size:10px;opacity:.75;">F{{ spot.floor }}</span>
-                  <span style="font-size:9px;opacity:.6;">{{ spot.spotType | slice:0:3 }}</span>
-                  <span style="font-size:9px;font-weight:600;">&#8377;{{ spot.pricePerHour }}/h</span>
+              <div style="display:flex;flex-direction:column;align-items:center;justify-content:space-between;border-radius:12px;border:1.5px solid;padding:10px 6px;min-height:100px;"
+                   [style.background]="spotStatusBg[spot.status] ?? 'rgba(255,255,255,.025)'"
+                   [style.border-color]="spotStatusColor[spot.status] ?? 'rgba(255,255,255,.07)'">
+                <div style="display:flex;flex-direction:column;align-items:center;flex:1;justify-content:center;gap:2px;">
+                  <span style="font-size:13px;font-weight:700;" [style.color]="spotStatusColor[spot.status] ?? '#e7e9ea'">{{ spot.spotNumber }}</span>
+                  <span style="font-size:10px;color:#71767b;">F{{ spot.floor }}</span>
+                  <span style="font-size:9px;color:#536471;">{{ spot.spotType | slice:0:3 }}</span>
+                  <span style="font-size:9px;font-weight:600;color:#71767b;">₹{{ spot.pricePerHour }}/h</span>
                 </div>
                 <button (click)="adminForceRemoveSpot(spot.spotId)"
-                        style="background:rgba(244,33,46,.12);border:none;cursor:pointer;border-radius:6px;padding:2px 8px;color:#f4212e;font-size:10px;font-weight:600;margin-top:4px;">
+                        style="background:rgba(244,33,46,.1);border:none;cursor:pointer;border-radius:6px;padding:2px 8px;color:#f4212e;font-size:10px;font-weight:600;margin-top:6px;transition:opacity 150ms;"
+                        onmouseenter="this.style.opacity='.7'" onmouseleave="this.style.opacity='1'">
                   Remove
                 </button>
               </div>
             }
           </div>
         }
+      }
+
       <!-- REVENUE TAB -->
       @if (adminTab() === 'revenue') {
-        <div class="space-y-4" @fadeUp>
-          <!-- All-time platform revenue card -->
+        <div style="display:flex;flex-direction:column;gap:16px;" class="anim-in anim-d1">
+
+          <!-- All-time revenue -->
           @if (adminRevenueLoading()) {
-            <div class="card p-6 animate-pulse" style="height:100px;"></div>
+            <div style="background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);border-radius:16px;height:100px;animation:pulse 1.5s ease-in-out infinite;"></div>
           } @else if (adminAllTimeRevenue()) {
-            <div class="grid gap-4" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr));" @fadeIn>
-              <div class="card p-5">
-                <p style="font-size:11px;color:var(--text-secondary);margin:0 0 6px;text-transform:uppercase;letter-spacing:.05em;">All-Time Revenue</p>
-                <p style="font-size:32px;font-weight:900;color:var(--accent);margin:0;">₹{{ adminAllTimeRevenue()?.totalRevenue | number:'1.0-0' }}</p>
-                <p style="font-size:12px;color:var(--text-secondary);margin:4px 0 0;">{{ adminAllTimeRevenue()?.totalTransactions }} transactions</p>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;">
+              <div style="background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:18px 20px;display:flex;align-items:center;gap:14px;">
+                <div style="width:44px;height:44px;border-radius:12px;background:rgba(29,155,240,.12);color:#1d9bf0;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                  <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 8.25H9m6 3H9m3 6l-3-3h1.5a3 3 0 100-6M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </div>
+                <div>
+                  <p style="font-size:26px;font-weight:800;color:#1d9bf0;letter-spacing:-1px;margin:0;">₹{{ adminAllTimeRevenue()?.totalRevenue | number:'1.0-0' }}</p>
+                  <p style="font-size:12px;color:#71767b;margin:3px 0 0;">All-Time Revenue</p>
+                  <p style="font-size:11px;color:#536471;margin:2px 0 0;">{{ adminAllTimeRevenue()?.totalTransactions }} transactions</p>
+                </div>
               </div>
-              <div class="card p-5">
-                <p style="font-size:11px;color:var(--text-secondary);margin:0 0 6px;text-transform:uppercase;letter-spacing:.05em;">Avg per Transaction</p>
-                <p style="font-size:32px;font-weight:900;color:#00ba7c;margin:0;">
-                  ₹{{ adminAllTimeRevenue()?.totalTransactions ? ((adminAllTimeRevenue()?.totalRevenue ?? 0) / (adminAllTimeRevenue()?.totalTransactions ?? 1) | number:'1.0-0') : 0 }}
-                </p>
-                <p style="font-size:12px;color:var(--text-secondary);margin:4px 0 0;">platform average</p>
+              <div style="background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:18px 20px;display:flex;align-items:center;gap:14px;">
+                <div style="width:44px;height:44px;border-radius:12px;background:rgba(0,186,124,.1);color:#00ba7c;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                  <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 14.25v2.25m3-4.5v4.5m3-6.75v6.75m3-9v9M6 20.25h12A2.25 2.25 0 0020.25 18V6A2.25 2.25 0 0018 3.75H6A2.25 2.25 0 003.75 6v12A2.25 2.25 0 006 20.25z"/></svg>
+                </div>
+                <div>
+                  <p style="font-size:26px;font-weight:800;color:#00ba7c;letter-spacing:-1px;margin:0;">₹{{ adminAllTimeRevenue()?.totalTransactions ? ((adminAllTimeRevenue()?.totalRevenue ?? 0) / (adminAllTimeRevenue()?.totalTransactions ?? 1) | number:'1.0-0') : 0 }}</p>
+                  <p style="font-size:12px;color:#71767b;margin:3px 0 0;">Avg per Transaction</p>
+                  <p style="font-size:11px;color:#536471;margin:2px 0 0;">platform average</p>
+                </div>
               </div>
             </div>
           }
 
-          <!-- Date-range platform revenue -->
-          <div class="card p-5">
-            <p style="font-size:14px;font-weight:600;color:var(--text-primary);margin:0 0 12px;">Revenue by Date Range</p>
-            <div class="flex flex-wrap gap-3 items-end">
-              <div>
-                <p style="font-size:11px;color:var(--text-secondary);margin:0 0 4px;">From</p>
-                <input [(ngModel)]="adminRevFrom" type="date"
-                       class="px-3 py-2 rounded-xl text-sm"
-                       style="background:var(--bg-secondary);border:1px solid var(--border);color:var(--text-primary);outline:none;"/>
-              </div>
-              <div>
-                <p style="font-size:11px;color:var(--text-secondary);margin:0 0 4px;">To</p>
-                <input [(ngModel)]="adminRevTo" type="date"
-                       class="px-3 py-2 rounded-xl text-sm"
-                       style="background:var(--bg-secondary);border:1px solid var(--border);color:var(--text-primary);outline:none;"/>
-              </div>
-              <button (click)="loadPlatformRevenue()" [disabled]="adminRevenueLoading()"
-                      class="px-4 py-2 rounded-xl text-sm font-bold"
-                      style="background:var(--accent);color:#fff;border:none;cursor:pointer;"
-                      [style.opacity]="adminRevenueLoading() ? '.6' : '1'">
-                Fetch
-              </button>
+          <!-- Date range revenue -->
+          <div style="background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);border-radius:16px;overflow:hidden;">
+            <div style="padding:16px 24px;border-bottom:1px solid rgba(255,255,255,.06);">
+              <p style="font-size:14px;font-weight:700;color:#e7e9ea;margin:0;">Revenue by Date Range</p>
             </div>
-            @if (adminPlatformRevenue()) {
-              <div class="mt-4 grid gap-3" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));" @fadeIn>
-                <div class="rounded-xl p-4" style="background:var(--bg-secondary);">
-                  <p style="font-size:11px;color:var(--text-secondary);margin:0 0 4px;">Revenue</p>
-                  <p style="font-size:22px;font-weight:800;color:var(--accent);margin:0;">₹{{ adminPlatformRevenue()?.totalRevenue | number:'1.0-0' }}</p>
+            <div style="padding:20px 24px;display:flex;flex-direction:column;gap:16px;">
+              <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
+                <div>
+                  <label style="display:block;font-size:11px;color:#71767b;font-weight:600;margin-bottom:6px;letter-spacing:.03em;">From</label>
+                  <input [(ngModel)]="adminRevFrom" type="date"
+                         style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:9px 12px;font-size:13px;color:#e7e9ea;outline:none;transition:border-color 150ms;"
+                         onfocus="this.style.borderColor='#1d9bf0'" onblur="this.style.borderColor='rgba(255,255,255,.08)'"/>
                 </div>
-                <div class="rounded-xl p-4" style="background:var(--bg-secondary);">
-                  <p style="font-size:11px;color:var(--text-secondary);margin:0 0 4px;">Transactions</p>
-                  <p style="font-size:22px;font-weight:800;color:#00ba7c;margin:0;">{{ adminPlatformRevenue()?.totalTransactions }}</p>
+                <div>
+                  <label style="display:block;font-size:11px;color:#71767b;font-weight:600;margin-bottom:6px;letter-spacing:.03em;">To</label>
+                  <input [(ngModel)]="adminRevTo" type="date"
+                         style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:9px 12px;font-size:13px;color:#e7e9ea;outline:none;transition:border-color 150ms;"
+                         onfocus="this.style.borderColor='#1d9bf0'" onblur="this.style.borderColor='rgba(255,255,255,.08)'"/>
                 </div>
+                <button (click)="loadPlatformRevenue()" [disabled]="adminRevenueLoading()"
+                        style="padding:9px 18px;border-radius:9999px;background:#1d9bf0;color:#fff;border:none;font-size:13px;font-weight:700;cursor:pointer;transition:opacity 150ms;"
+                        [style.opacity]="adminRevenueLoading() ? '.5' : '1'">Fetch</button>
               </div>
-            }
+              @if (adminPlatformRevenue()) {
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;">
+                  <div style="background:rgba(255,255,255,.03);border-radius:12px;padding:14px 16px;">
+                    <p style="font-size:11px;color:#71767b;margin:0 0 4px;text-transform:uppercase;letter-spacing:.05em;">Revenue</p>
+                    <p style="font-size:22px;font-weight:800;color:#1d9bf0;margin:0;">₹{{ adminPlatformRevenue()?.totalRevenue | number:'1.0-0' }}</p>
+                  </div>
+                  <div style="background:rgba(255,255,255,.03);border-radius:12px;padding:14px 16px;">
+                    <p style="font-size:11px;color:#71767b;margin:0 0 4px;text-transform:uppercase;letter-spacing:.05em;">Transactions</p>
+                    <p style="font-size:22px;font-weight:800;color:#00ba7c;margin:0;">{{ adminPlatformRevenue()?.totalTransactions }}</p>
+                  </div>
+                </div>
+              }
+            </div>
           </div>
 
-          <!-- Per-lot revenue lookup -->
-          <div class="card p-5">
-            <p style="font-size:14px;font-weight:600;color:var(--text-primary);margin:0 0 12px;">Revenue by Lot</p>
-            <div class="flex gap-3 flex-wrap items-end">
-              <select [(ngModel)]="adminRevLotId"
-                      class="px-3 py-2 rounded-xl text-sm"
-                      style="background:var(--bg-secondary);border:1px solid var(--border);color:var(--text-primary);outline:none;min-width:200px;">
-                @for (lot of allLots(); track lot.lotId) {
-                  <option [value]="lot.lotId">{{ lot.name }} — {{ lot.city }}</option>
-                }
-              </select>
-              <button (click)="loadLotRevenue()" [disabled]="adminRevenueLoading()"
-                      class="px-4 py-2 rounded-xl text-sm font-bold"
-                      style="background:var(--accent);color:#fff;border:none;cursor:pointer;"
-                      [style.opacity]="adminRevenueLoading() ? '.6' : '1'">
-                Fetch
-              </button>
+          <!-- Per-lot revenue -->
+          <div style="background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);border-radius:16px;overflow:hidden;">
+            <div style="padding:16px 24px;border-bottom:1px solid rgba(255,255,255,.06);">
+              <p style="font-size:14px;font-weight:700;color:#e7e9ea;margin:0;">Revenue by Lot</p>
             </div>
-            @if (adminLotRevenue()) {
-              <div class="mt-4 grid gap-3" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));" @fadeIn>
-                <div class="rounded-xl p-4" style="background:var(--bg-secondary);">
-                  <p style="font-size:11px;color:var(--text-secondary);margin:0 0 4px;">Revenue</p>
-                  <p style="font-size:22px;font-weight:800;color:var(--accent);margin:0;">₹{{ adminLotRevenue()?.totalRevenue | number:'1.0-0' }}</p>
-                </div>
-                <div class="rounded-xl p-4" style="background:var(--bg-secondary);">
-                  <p style="font-size:11px;color:var(--text-secondary);margin:0 0 4px;">Transactions</p>
-                  <p style="font-size:22px;font-weight:800;color:#00ba7c;margin:0;">{{ adminLotRevenue()?.totalTransactions }}</p>
-                </div>
+            <div style="padding:20px 24px;display:flex;flex-direction:column;gap:16px;">
+              <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+                <select [(ngModel)]="adminRevLotId"
+                        style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:9px 12px;font-size:13px;color:#e7e9ea;outline:none;min-width:200px;cursor:pointer;">
+                  @for (lot of allLots(); track lot.lotId) {
+                    <option [value]="lot.lotId" style="background:#1c1c1c;">{{ lot.name }} — {{ lot.city }}</option>
+                  }
+                </select>
+                <button (click)="loadLotRevenue()" [disabled]="adminRevenueLoading()"
+                        style="padding:9px 18px;border-radius:9999px;background:#1d9bf0;color:#fff;border:none;font-size:13px;font-weight:700;cursor:pointer;transition:opacity 150ms;"
+                        [style.opacity]="adminRevenueLoading() ? '.5' : '1'">Fetch</button>
               </div>
-            }
+              @if (adminLotRevenue()) {
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;">
+                  <div style="background:rgba(255,255,255,.03);border-radius:12px;padding:14px 16px;">
+                    <p style="font-size:11px;color:#71767b;margin:0 0 4px;text-transform:uppercase;letter-spacing:.05em;">Revenue</p>
+                    <p style="font-size:22px;font-weight:800;color:#1d9bf0;margin:0;">₹{{ adminLotRevenue()?.totalRevenue | number:'1.0-0' }}</p>
+                  </div>
+                  <div style="background:rgba(255,255,255,.03);border-radius:12px;padding:14px 16px;">
+                    <p style="font-size:11px;color:#71767b;margin:0 0 4px;text-transform:uppercase;letter-spacing:.05em;">Transactions</p>
+                    <p style="font-size:22px;font-weight:800;color:#00ba7c;margin:0;">{{ adminLotRevenue()?.totalTransactions }}</p>
+                  </div>
+                </div>
+              }
+            </div>
           </div>
         </div>
       }
-    }
 
     </div>
-  `,
-  styles: [`
-    .animate-pulse { animation: pulse 1.5s cubic-bezier(.4,0,.6,1) infinite; }
-    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
-  `]
+  `
 })
 export class AdminSlotsComponent implements OnInit, OnDestroy {
   private parking  = inject(ParkingService);
@@ -310,20 +282,30 @@ export class AdminSlotsComponent implements OnInit, OnDestroy {
   private paySvc   = inject(PaymentService);
   private destroy$ = new Subject<void>();
 
-  allLots      = signal<ParkingLot[]>([]);
-  allSpots     = signal<ParkingSpot[]>([]);
+  readonly spotStatusColor = spotStatusColor;
+  readonly spotStatusBg    = spotStatusBg;
+
+  allLots           = signal<ParkingLot[]>([]);
+  allSpots          = signal<ParkingSpot[]>([]);
   adminPendingLots  = signal<ParkingLot[]>([]);
   adminTab = signal<'lots' | 'pending' | 'spots' | 'revenue'>('lots');
   adminLotId = 1;
-  adminRevFrom        = '';
-  adminRevTo          = '';
-  adminRevLotId       = 0;
-  adminRevenueLoading = signal(false);
-  adminAllTimeRevenue = signal<any>(null);
+  adminRevFrom         = '';
+  adminRevTo           = '';
+  adminRevLotId        = 0;
+  adminRevenueLoading  = signal(false);
+  adminAllTimeRevenue  = signal<any>(null);
   adminPlatformRevenue = signal<any>(null);
-  adminLotRevenue     = signal<any>(null);
+  adminLotRevenue      = signal<any>(null);
   loadingSpots = signal(true);
   loadingLots  = signal(true);
+
+  adminTabs = [
+    { id: 'lots'    as const, label: 'All Lots' },
+    { id: 'pending' as const, label: 'Pending' },
+    { id: 'spots'   as const, label: 'Spots' },
+    { id: 'revenue' as const, label: 'Revenue' },
+  ];
 
   spotTypes: SpotType[] = ['STANDARD','COMPACT','LARGE','EV_ONLY','HANDICAPPED'];
   legend = [
@@ -388,6 +370,11 @@ export class AdminSlotsComponent implements OnInit, OnDestroy {
     });
   }
 
+  switchAdminTab(id: 'lots' | 'pending' | 'spots' | 'revenue') {
+    this.adminTab.set(id);
+    if (id === 'revenue') this.loadAdminRevenue();
+  }
+
   loadAdminRevenue() {
     this.adminRevenueLoading.set(true);
     this.paySvc.getAllTimeRevenue().pipe(takeUntil(this.destroy$)).subscribe({
@@ -416,5 +403,5 @@ export class AdminSlotsComponent implements OnInit, OnDestroy {
   }
 
   lotStatusColor(s: string) { return s === 'APPROVED' || s === 'ACTIVE' ? '#00ba7c' : s === 'PENDING' ? '#ffd400' : '#f4212e'; }
-  lotStatusBg(s: string) { return s === 'APPROVED' || s === 'ACTIVE' ? 'rgba(0,186,124,.12)' : s === 'PENDING' ? 'rgba(255,212,0,.12)' : 'rgba(244,33,46,.12)'; }
+  lotStatusBg(s: string)    { return s === 'APPROVED' || s === 'ACTIVE' ? 'rgba(0,186,124,.12)' : s === 'PENDING' ? 'rgba(255,212,0,.12)' : 'rgba(244,33,46,.12)'; }
 }

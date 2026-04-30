@@ -33,14 +33,14 @@ const DEMO: Record<string, { email: string; password: string; color: string }> =
     ])
   ],
   template: `
-    <div class="flex" style="height:100vh;overflow:hidden;background:var(--bg-primary);">
+    <div class="flex" style="height:100vh;overflow:hidden;background:var(--bg-primary);position:relative;">
 
       <!-- Left decorative panel (desktop only) -->
       <div class="hidden lg:flex flex-col justify-between w-2/5 relative overflow-hidden p-12"
            style="border-right:1px solid var(--border);">
-        <div class="absolute inset-0 grid-bg pointer-events-none"></div>
-        <div class="orb orb-1" style="width:360px;height:360px;top:-60px;left:-60px;background:radial-gradient(circle,rgba(29,155,240,.2) 0%,transparent 70%);"></div>
-        <div class="orb orb-2" style="width:280px;height:280px;bottom:80px;right:-40px;background:radial-gradient(circle,rgba(120,40,200,.15) 0%,transparent 70%);"></div>
+        <div class="absolute inset-0 grid-bg pointer-events-none" style="mask-image:linear-gradient(to bottom, transparent 0%, black 20%, black 80%, transparent 100%);"></div>
+        <div class="orb orb-1" style="width:360px;height:360px;top:-60px;left:-60px;background:radial-gradient(circle,rgba(29,155,240,.12) 0%,transparent 70%);"></div>
+        <div class="orb orb-2" style="width:280px;height:280px;bottom:80px;right:-40px;background:radial-gradient(circle,rgba(120,40,200,.08) 0%,transparent 70%);"></div>
 
         <div class="relative z-10">
           <div class="flex items-center gap-2.5 mb-12">
@@ -76,6 +76,7 @@ const DEMO: Record<string, { email: string; password: string; color: string }> =
 
       <!-- Right: form panel -->
       <div class="flex-1 flex flex-col items-center justify-center p-8 relative" style="overflow-y:auto;">
+        <div class="absolute inset-0 grid-bg pointer-events-none opacity-50" style="mask-image:radial-gradient(ellipse at center, black 40%, transparent 80%);"></div>
 
         <!-- Theme toggle -->
         <button (click)="theme.toggle()" class="absolute top-6 right-6 p-2 rounded-full nav-item"
@@ -107,23 +108,21 @@ const DEMO: Record<string, { email: string; password: string; color: string }> =
             <!-- Sign in: solid blue when active, ghost when inactive -->
             <button (click)="switchTab('login')"
                     class="flex-1 py-2.5 rounded-full text-sm font-bold flex items-center justify-center gap-1.5 transition-all"
-                    [style.background]="tab() === 'login' ? 'var(--accent)' : 'transparent'"
-                    [style.color]="tab() === 'login' ? '#fff' : 'var(--text-secondary)'"
-                    [style.box-shadow]="tab() === 'login' ? '0 0 0 1px rgba(29,155,240,.5),0 4px 18px rgba(29,155,240,.3)' : 'none'"
-                    [style.border]="tab() === 'login' ? 'none' : '1.5px solid var(--border)'"
+                    [style.background]="tab() === 'login' ? 'rgba(14,165,233,0.15)' : 'transparent'"
+                    [style.color]="tab() === 'login' ? 'var(--accent)' : 'var(--text-secondary)'"
+                    [style.border]="tab() === 'login' ? '1px solid rgba(14,165,233,0.3)' : '1px solid var(--border)'"
                     style="cursor:pointer;letter-spacing:.01em;">
               <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9"/>
               </svg>
               Sign in
             </button>
-            <!-- Sign up: dashed ghost when inactive, solid green when active -->
+            <!-- Sign up: ghost when inactive, muted glass when active -->
             <button (click)="switchTab('signup')"
                     class="flex-1 py-2.5 rounded-full text-sm font-bold flex items-center justify-center gap-1.5 transition-all"
-                    [style.background]="tab() === 'signup' ? '#00ba7c' : 'transparent'"
-                    [style.color]="tab() === 'signup' ? '#fff' : 'var(--text-secondary)'"
-                    [style.box-shadow]="tab() === 'signup' ? '0 0 0 1px rgba(0,186,124,.5),0 4px 18px rgba(0,186,124,.25)' : 'none'"
-                    [style.border]="tab() === 'signup' ? 'none' : '1.5px dashed var(--border)'"
+                    [style.background]="tab() === 'signup' ? 'rgba(14,165,233,0.15)' : 'transparent'"
+                    [style.color]="tab() === 'signup' ? 'var(--accent)' : 'var(--text-secondary)'"
+                    [style.border]="tab() === 'signup' ? '1px solid rgba(14,165,233,0.3)' : '1px dashed var(--border)'"
                     style="cursor:pointer;letter-spacing:.01em;">
               <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M19 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM4 19.235v-.11a6.375 6.375 0 0112.75 0v.109A12.318 12.318 0 0110.374 21c-2.331 0-4.512-.645-6.374-1.766z"/>
@@ -215,8 +214,12 @@ const DEMO: Record<string, { email: string; password: string; color: string }> =
 
               <button (click)="submit()" [disabled]="loading()"
                       class="w-full py-3 rounded-full font-bold"
-                      style="background:var(--text-primary);color:var(--bg-primary);border:none;cursor:pointer;font-size:15px;transition:opacity var(--transition);"
-                      [style.opacity]="loading() ? '.6' : '1'">
+                      style="background:rgba(14,165,233,0.15);color:var(--accent);
+                             border:1px solid rgba(14,165,233,0.3);
+                             cursor:pointer;font-size:15px;transition:all 200ms ease;"
+                      [style.opacity]="loading() ? '.6' : '1'"
+                      onmouseenter="this.style.background='rgba(14,165,233,0.25)'"
+                      onmouseleave="this.style.background='rgba(14,165,233,0.15)'">
                 {{ loading() ? 'Signing in…' : 'Sign in' }}
               </button>
             </div>
@@ -318,8 +321,12 @@ const DEMO: Record<string, { email: string; password: string; color: string }> =
 
               <button (click)="register()" [disabled]="regLoading()"
                       class="w-full py-3 rounded-full font-bold"
-                      style="background:var(--accent);color:#fff;border:none;cursor:pointer;font-size:15px;transition:opacity var(--transition);"
-                      [style.opacity]="regLoading() ? '.6' : '1'">
+                      style="background:rgba(14,165,233,0.15);color:var(--accent);
+                             border:1px solid rgba(14,165,233,0.3);
+                             cursor:pointer;font-size:15px;transition:all 200ms ease;"
+                      [style.opacity]="regLoading() ? '.6' : '1'"
+                      onmouseenter="this.style.background='rgba(14,165,233,0.25)'"
+                      onmouseleave="this.style.background='rgba(14,165,233,0.15)'">
                 {{ regLoading() ? 'Creating account…' : 'Create account' }}
               </button>
             </div>

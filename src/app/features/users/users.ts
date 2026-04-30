@@ -1,7 +1,6 @@
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { trigger, transition, style, animate } from '@angular/animations';
 import { HttpClient } from '@angular/common/http';
 import { ToastService } from '../../core/services/toast.service';
 
@@ -10,135 +9,139 @@ interface User {
   phone: string; isActive: boolean; createdAt: string;
 }
 
-const ROLE_COLOR: Record<string, string> = { ADMIN:'#f4212e', MANAGER:'#ffd400', DRIVER:'#00ba7c' };
+const ROLE_COLOR: Record<string, string> = { ADMIN: '#f4212e', MANAGER: '#ffd400', DRIVER: '#1d9bf0' };
 
 @Component({
   selector: 'app-users',
   standalone: true,
   imports: [CommonModule, FormsModule],
-  animations: [
-    trigger('fadeUp', [transition(':enter', [style({ opacity: 0, transform: 'translateY(16px)' }), animate('360ms cubic-bezier(.4,0,.2,1)', style({ opacity: 1, transform: 'translateY(0)' }))])])
-  ],
   template: `
-    <div class="p-6 space-y-5 page-host" @fadeUp>
-      <div class="flex flex-wrap items-center justify-between gap-4">
+    <div style="max-width:1100px;margin:0 auto;padding:28px 24px;min-height:100%;" class="anim-in">
+
+      <!-- Header -->
+      <div style="margin-bottom:28px;padding-bottom:20px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;">
         <div>
-          <h2 style="font-size:22px;font-weight:700;color:var(--text-primary);margin:0;">User Management</h2>
-          <p style="color:var(--text-secondary);font-size:14px;margin:4px 0 0;">{{ filtered().length }} users</p>
+          <h1 style="font-size:22px;font-weight:800;color:#e7e9ea;margin:0 0 4px;letter-spacing:-.3px;">User Management</h1>
+          <p style="font-size:13px;color:#71767b;margin:0;">{{ filtered().length }} users</p>
         </div>
-        <div class="flex gap-2 flex-wrap">
-          <div class="floating-group" style="margin:0;min-width:200px;">
-            <input [(ngModel)]="search" type="text" id="usearch" placeholder=" " (ngModelChange)="applyFilter()"/>
-            <label for="usearch">Search name / email</label>
+        <!-- Filters -->
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+          <div style="position:relative;">
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#71767b" stroke-width="2"
+                 style="position:absolute;left:12px;top:50%;transform:translateY(-50%);pointer-events:none;">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 15.803 7.5 7.5 0 0016.803 15.803z"/>
+            </svg>
+            <input [(ngModel)]="search" type="text" placeholder="Search name / email" (ngModelChange)="applyFilter()"
+                   style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:9px 14px 9px 34px;font-size:13px;color:#e7e9ea;outline:none;width:220px;transition:border-color 150ms;"
+                   onfocus="this.style.borderColor='#1d9bf0'" onblur="this.style.borderColor='rgba(255,255,255,.08)'"/>
           </div>
           <select [(ngModel)]="roleFilter" (ngModelChange)="applyFilter()"
-                  class="px-3 py-2 rounded-xl text-sm"
-                  style="background:var(--bg-card);border:1px solid var(--border);color:var(--text-primary);outline:none;">
-            <option value="">All Roles</option>
-            <option value="ADMIN">Admin</option>
-            <option value="MANAGER">Manager</option>
-            <option value="DRIVER">Driver</option>
+                  style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:9px 14px;font-size:13px;color:#e7e9ea;outline:none;cursor:pointer;">
+            <option value="" style="background:#1c1c1c;">All Roles</option>
+            <option value="ADMIN" style="background:#1c1c1c;">Admin</option>
+            <option value="MANAGER" style="background:#1c1c1c;">Manager</option>
+            <option value="DRIVER" style="background:#1c1c1c;">Driver</option>
           </select>
         </div>
       </div>
 
       @if (loading()) {
-        <div class="space-y-2">
+        <div style="display:flex;flex-direction:column;gap:0;">
           @for (i of [1,2,3,4,5]; track i) {
-            <div class="card p-4 animate-pulse" style="height:64px;"></div>
+            <div style="background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);border-radius:12px;height:70px;margin-bottom:8px;animation:pulse 1.5s ease-in-out infinite;"></div>
           }
         </div>
       } @else {
-        <div class="card overflow-hidden" @fadeUp>
-          <div style="overflow-x:auto;">
-            <table style="width:100%;border-collapse:collapse;">
-              <thead>
-                <tr style="border-bottom:1px solid var(--border);">
-                  @for (h of headers; track h) {
-                    <th style="padding:12px 16px;text-align:left;font-size:11px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;">{{ h }}</th>
+        <div style="background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);border-radius:16px;overflow:hidden;" class="anim-in anim-d1">
+
+          @if (filtered().length === 0) {
+            <div style="padding:64px 24px;text-align:center;">
+              <p style="font-size:14px;color:#71767b;margin:0;">No users match your search.</p>
+            </div>
+          } @else {
+            @for (u of filtered(); track u.userId; let last = $last) {
+              <div style="display:flex;align-items:center;gap:14px;padding:14px 20px;transition:background 120ms ease;cursor:default;"
+                   [style.border-bottom]="last ? 'none' : '1px solid rgba(255,255,255,.04)'"
+                   onmouseenter="this.style.background='rgba(255,255,255,.03)'"
+                   onmouseleave="this.style.background='transparent'">
+
+                <!-- Avatar + name/email -->
+                <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0;">
+                  <div style="width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;flex-shrink:0;"
+                       [style.background]="roleColor(u.role)">
+                    {{ initials(u.fullName) }}
+                  </div>
+                  <div style="min-width:0;">
+                    <p style="font-size:14px;font-weight:700;color:#e7e9ea;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ u.fullName }}</p>
+                    <p style="font-size:12px;color:#71767b;margin:2px 0 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ u.email }}</p>
+                  </div>
+                </div>
+
+                <!-- Role -->
+                <div style="flex-shrink:0;width:90px;">
+                  <span style="font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;letter-spacing:.06em;text-transform:uppercase;"
+                        [style.background]="roleColor(u.role) + '18'" [style.color]="roleColor(u.role)">{{ u.role }}</span>
+                </div>
+
+                <!-- Phone -->
+                <div style="flex-shrink:0;width:120px;font-size:12px;color:#71767b;">{{ u.phone || '—' }}</div>
+
+                <!-- Status -->
+                <div style="flex-shrink:0;width:90px;display:flex;align-items:center;gap:6px;">
+                  <div style="width:7px;height:7px;border-radius:50%;flex-shrink:0;"
+                       [style.background]="u.isActive ? '#00ba7c' : '#f4212e'"></div>
+                  <span style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;"
+                        [style.color]="u.isActive ? '#00ba7c' : '#f4212e'">{{ u.isActive ? 'Active' : 'Suspended' }}</span>
+                </div>
+
+                <!-- Joined -->
+                <div style="flex-shrink:0;width:110px;font-size:12px;color:#71767b;">{{ u.createdAt | date:'dd MMM yyyy' }}</div>
+
+                <!-- Actions -->
+                <div style="flex-shrink:0;display:flex;gap:8px;">
+                  @if (u.role !== 'ADMIN') {
+                    <button (click)="toggleUser(u)"
+                            style="font-size:12px;padding:6px 14px;border-radius:9999px;font-weight:600;cursor:pointer;border:none;transition:opacity 150ms;"
+                            [style.background]="u.isActive ? 'rgba(244,33,46,.08)' : 'rgba(0,186,124,.08)'"
+                            [style.color]="u.isActive ? '#f4212e' : '#00ba7c'"
+                            onmouseenter="this.style.opacity='.75'" onmouseleave="this.style.opacity='1'">
+                      {{ u.isActive ? 'Suspend' : 'Reactivate' }}
+                    </button>
+                    <button (click)="deleteUser(u)"
+                            style="font-size:12px;padding:6px 14px;border-radius:9999px;font-weight:600;cursor:pointer;background:rgba(244,33,46,.06);color:#f4212e;border:1px solid rgba(244,33,46,.15);transition:opacity 150ms;"
+                            onmouseenter="this.style.opacity='.75'" onmouseleave="this.style.opacity='1'">
+                      Delete
+                    </button>
                   }
-                </tr>
-              </thead>
-              <tbody>
-                @for (u of filtered(); track u.userId) {
-                  <tr style="border-bottom:1px solid var(--border);transition:background 120ms;"
-                      onmouseenter="this.style.background='var(--bg-hover)'"
-                      onmouseleave="this.style.background='transparent'">
-                    <td style="padding:12px 16px;">
-                      <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
-                             style="background:var(--accent-dim);color:var(--accent);">
-                          {{ initials(u.fullName) }}
-                        </div>
-                        <div>
-                          <p style="font-size:13px;font-weight:700;color:var(--text-primary);margin:0;">{{ u.fullName }}</p>
-                          <p style="font-size:11px;color:var(--text-secondary);margin:0;">{{ u.email }}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td style="padding:12px 16px;">
-                      <span class="text-xs font-bold px-2 py-0.5 rounded-full"
-                            [style.background]="roleColor(u.role) + '18'"
-                            [style.color]="roleColor(u.role)">{{ u.role }}</span>
-                    </td>
-                    <td style="padding:12px 16px;font-size:12px;color:var(--text-secondary);">{{ u.phone || '—' }}</td>
-                    <td style="padding:12px 16px;">
-                      <span class="text-xs font-bold px-2 py-0.5 rounded-full"
-                            [style.background]="u.isActive ? 'rgba(0,186,124,.1)' : 'rgba(244,33,46,.1)'"
-                            [style.color]="u.isActive ? '#00ba7c' : '#f4212e'">
-                        {{ u.isActive ? 'Active' : 'Suspended' }}
-                      </span>
-                    </td>
-                    <td style="padding:12px 16px;font-size:12px;color:var(--text-secondary);">{{ u.createdAt | date:'dd MMM yyyy' }}</td>
-                    <td style="padding:12px 16px;">
-                      <div class="flex gap-2">
-                        @if (u.role !== 'ADMIN') {
-                          <button (click)="toggleUser(u)"
-                                  class="text-xs px-3 py-1.5 rounded-full font-semibold"
-                                  [style.background]="u.isActive ? 'rgba(244,33,46,.08)' : 'rgba(0,186,124,.08)'"
-                                  [style.color]="u.isActive ? '#f4212e' : '#00ba7c'"
-                                  style="border:none;cursor:pointer;">
-                            {{ u.isActive ? 'Suspend' : 'Reactivate' }}
-                          </button>
-                          <button (click)="deleteUser(u)"
-                                  class="text-xs px-3 py-1.5 rounded-full font-semibold"
-                                  style="background:rgba(244,33,46,.06);color:#f4212e;border:1px solid rgba(244,33,46,.15);cursor:pointer;">
-                            Delete
-                          </button>
-                        }
-                      </div>
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-            @if (filtered().length === 0) {
-              <div class="py-12 text-center">
-                <p style="font-size:14px;color:var(--text-secondary);">No users match your search.</p>
+                </div>
               </div>
             }
-          </div>
+          }
         </div>
       }
 
       <!-- Confirm delete modal -->
       @if (confirmDelete()) {
-        <div class="fixed inset-0 z-50 flex items-center justify-center p-4"
-             style="background:rgba(0,0,0,.6);backdrop-filter:blur(4px);">
-          <div class="card p-6 w-full" style="max-width:380px;">
-            <h3 style="font-size:16px;font-weight:700;color:var(--text-primary);margin:0 0 8px;">Delete User</h3>
-            <p style="font-size:13px;color:var(--text-secondary);margin:0 0 20px;">
-              Permanently delete <strong style="color:var(--text-primary);">{{ confirmDelete()!.fullName }}</strong>? This cannot be undone.
+        <div style="position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.75);backdrop-filter:blur(6px);">
+          <div style="background:#0f0f0f;border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:28px;width:100%;max-width:360px;" class="anim-in">
+            <div style="width:44px;height:44px;border-radius:12px;background:rgba(244,33,46,.1);display:flex;align-items:center;justify-content:center;margin-bottom:16px;">
+              <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#f4212e" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/>
+              </svg>
+            </div>
+            <h3 style="font-size:16px;font-weight:800;color:#e7e9ea;margin:0 0 8px;">Delete User</h3>
+            <p style="font-size:13px;color:#71767b;margin:0 0 24px;line-height:1.6;">
+              Permanently delete <strong style="color:#e7e9ea;">{{ confirmDelete()!.fullName }}</strong>? This cannot be undone.
             </p>
-            <div class="flex gap-3">
+            <div style="display:flex;gap:10px;">
               <button (click)="confirmDeleteUser()"
-                      class="flex-1 py-2.5 rounded-xl text-sm font-bold"
-                      style="background:rgba(244,33,46,.1);color:#f4212e;border:1px solid rgba(244,33,46,.2);cursor:pointer;">
+                      style="flex:1;padding:11px;border-radius:12px;background:rgba(244,33,46,.1);color:#f4212e;border:1px solid rgba(244,33,46,.2);font-size:14px;font-weight:700;cursor:pointer;transition:background 150ms;"
+                      onmouseenter="this.style.background='rgba(244,33,46,.16)'" onmouseleave="this.style.background='rgba(244,33,46,.1)'">
                 Delete
               </button>
               <button (click)="confirmDelete.set(null)"
-                      class="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-                      style="background:var(--bg-hover);border:1px solid var(--border);color:var(--text-secondary);cursor:pointer;">
+                      style="flex:1;padding:11px;border-radius:12px;background:rgba(255,255,255,.05);color:#e7e9ea;border:1px solid rgba(255,255,255,.08);font-size:14px;font-weight:600;cursor:pointer;transition:background 150ms;"
+                      onmouseenter="this.style.background='rgba(255,255,255,.09)'" onmouseleave="this.style.background='rgba(255,255,255,.05)'">
                 Cancel
               </button>
             </div>
@@ -152,7 +155,6 @@ export class UsersComponent implements OnInit {
   private http  = inject(HttpClient);
   private toast = inject(ToastService);
 
-  headers = ['User', 'Role', 'Phone', 'Status', 'Joined', 'Actions'];
   allUsers     = signal<User[]>([]);
   filteredList = signal<User[]>([]);
   loading      = signal(true);
@@ -207,6 +209,6 @@ export class UsersComponent implements OnInit {
     });
   }
 
-  initials(name: string) { return name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase(); }
-  roleColor(r: string)   { return ROLE_COLOR[r] ?? 'var(--accent)'; }
+  initials(name: string) { return name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase(); }
+  roleColor(r: string)   { return ROLE_COLOR[r] ?? '#1d9bf0'; }
 }

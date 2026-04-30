@@ -1,7 +1,6 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { trigger, transition, style, animate } from '@angular/animations';
 import { HttpClient } from '@angular/common/http';
 import { NotificationService } from '../../core/services/notification.service';
 import { ToastService } from '../../core/services/toast.service';
@@ -12,29 +11,27 @@ interface AdminUser { userId: number; fullName: string; email: string; role: str
   selector: 'app-send-notification',
   standalone: true,
   imports: [CommonModule, FormsModule],
-  animations: [
-    trigger('fadeUp', [transition(':enter', [style({ opacity: 0, transform: 'translateY(16px)' }), animate('360ms cubic-bezier(.4,0,.2,1)', style({ opacity: 1, transform: 'translateY(0)' }))])])
-  ],
   template: `
-    <div class="p-6 space-y-6 page-host" @fadeUp>
-      <div>
-        <h2 style="font-size:22px;font-weight:700;color:var(--text-primary);margin:0;">Send Notification</h2>
-        <p style="color:var(--text-secondary);font-size:14px;margin:4px 0 0;">Broadcast messages to platform users</p>
+    <div style="max-width:640px;margin:0 auto;padding:28px 24px;min-height:100%;" class="anim-in">
+
+      <!-- Header -->
+      <div style="margin-bottom:28px;padding-bottom:20px;border-bottom:1px solid rgba(255,255,255,.06);">
+        <h1 style="font-size:22px;font-weight:800;color:#e7e9ea;margin:0 0 4px;letter-spacing:-.3px;">Send Notification</h1>
+        <p style="font-size:13px;color:#71767b;margin:0;">Broadcast messages to platform users</p>
       </div>
 
-      <div class="card p-6 space-y-5" style="max-width:620px;">
+      <div style="background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);border-radius:16px;overflow:hidden;" class="anim-in anim-d1">
 
         <!-- Audience -->
-        <div>
-          <p style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-secondary);margin:0 0 10px;">Audience</p>
-          <div class="grid grid-cols-3 gap-2">
+        <div style="padding:20px 24px;border-bottom:1px solid rgba(255,255,255,.06);">
+          <p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#71767b;margin:0 0 12px;">Audience</p>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
             @for (a of audiences; track a.value) {
               <button (click)="audience = a.value"
-                      class="py-3 rounded-xl text-sm font-semibold transition-all flex flex-col items-center gap-1"
-                      [style.background]="audience === a.value ? 'var(--accent-dim)' : 'var(--bg-hover)'"
-                      [style.border]="'1px solid ' + (audience === a.value ? 'var(--accent)' : 'var(--border)')"
-                      [style.color]="audience === a.value ? 'var(--accent)' : 'var(--text-secondary)'"
-                      style="cursor:pointer;outline:none;">
+                      style="padding:14px 8px;border-radius:12px;font-size:13px;font-weight:600;cursor:pointer;transition:all 150ms;display:flex;flex-direction:column;align-items:center;gap:6px;"
+                      [style.background]="audience === a.value ? 'rgba(29,155,240,.1)' : 'rgba(255,255,255,.03)'"
+                      [style.border]="'1px solid ' + (audience === a.value ? 'rgba(29,155,240,.4)' : 'rgba(255,255,255,.07)')"
+                      [style.color]="audience === a.value ? '#1d9bf0' : '#71767b'">
                 <span [innerHTML]="a.icon" style="display:flex;"></span>
                 {{ a.label }}
               </button>
@@ -43,66 +40,64 @@ interface AdminUser { userId: number; fullName: string; email: string; role: str
         </div>
 
         <!-- Type -->
-        <div>
-          <p style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-secondary);margin:0 0 10px;">Type</p>
-          <div class="grid grid-cols-2 gap-2">
+        <div style="padding:20px 24px;border-bottom:1px solid rgba(255,255,255,.06);">
+          <p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#71767b;margin:0 0 12px;">Type</p>
+          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;">
             @for (t of notifTypes; track t.value) {
               <button (click)="notifType = t.value"
-                      class="py-2.5 px-3 rounded-xl text-sm font-semibold transition-all text-left"
-                      [style.background]="notifType === t.value ? 'var(--bg-hover)' : 'transparent'"
-                      [style.border]="'1px solid ' + (notifType === t.value ? 'var(--accent)' : 'var(--border)')"
-                      [style.color]="notifType === t.value ? 'var(--text-primary)' : 'var(--text-secondary)'"
-                      style="cursor:pointer;outline:none;">
+                      style="padding:10px 14px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;transition:all 150ms;text-align:left;"
+                      [style.background]="notifType === t.value ? 'rgba(255,255,255,.06)' : 'rgba(255,255,255,.02)'"
+                      [style.border]="'1px solid ' + (notifType === t.value ? 'rgba(29,155,240,.4)' : 'rgba(255,255,255,.06)')"
+                      [style.color]="notifType === t.value ? '#e7e9ea' : '#71767b'">
                 {{ t.label }}
               </button>
             }
           </div>
         </div>
 
-        <!-- Title -->
-        <div class="floating-group">
-          <input [(ngModel)]="title" type="text" id="ntitle" placeholder=" "/>
-          <label for="ntitle">Title *</label>
-        </div>
-
-        <!-- Message -->
-        <div style="position:relative;">
-          <textarea [(ngModel)]="message" id="nmsg" placeholder=" " rows="4"
-                    class="w-full px-4 pt-5 pb-3 rounded-xl text-sm resize-none"
-                    style="background:var(--bg-secondary);border:1px solid var(--border);color:var(--text-primary);outline:none;font-family:inherit;"></textarea>
-          <label for="nmsg" style="position:absolute;left:16px;font-size:13px;color:var(--text-secondary);pointer-events:none;transition:all 150ms ease;"
-                 [style.top]="message ? '6px' : '14px'"
-                 [style.font-size]="message ? '11px' : '13px'">Message *</label>
-        </div>
-
-        <!-- Recipient count estimate -->
-        @if (recipientCount() !== null) {
-          <div class="flex items-center gap-2 px-4 py-3 rounded-xl"
-               style="background:var(--bg-secondary);border:1px solid var(--border);">
-            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="var(--text-secondary)" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/>
-            </svg>
-            <span style="font-size:13px;color:var(--text-secondary);">
-              Will be sent to <strong style="color:var(--text-primary);">{{ recipientCount() }}</strong> user{{ recipientCount() !== 1 ? 's' : '' }}
-            </span>
+        <!-- Message form -->
+        <div style="padding:20px 24px;display:flex;flex-direction:column;gap:14px;">
+          <div>
+            <label style="display:block;font-size:12px;color:#71767b;font-weight:600;margin-bottom:6px;letter-spacing:.03em;">Title <span style="color:#f4212e;">*</span></label>
+            <input [(ngModel)]="title" type="text" placeholder="Notification title"
+                   style="width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:11px 14px;font-size:14px;color:#e7e9ea;outline:none;box-sizing:border-box;transition:border-color 150ms;"
+                   onfocus="this.style.borderColor='#1d9bf0'" onblur="this.style.borderColor='rgba(255,255,255,.08)'"/>
           </div>
-        }
+          <div>
+            <label style="display:block;font-size:12px;color:#71767b;font-weight:600;margin-bottom:6px;letter-spacing:.03em;">Message <span style="color:#f4212e;">*</span></label>
+            <textarea [(ngModel)]="message" rows="4" placeholder="Write your message here…"
+                      style="width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:11px 14px;font-size:14px;color:#e7e9ea;outline:none;box-sizing:border-box;resize:vertical;font-family:inherit;transition:border-color 150ms;"
+                      onfocus="this.style.borderColor='#1d9bf0'" onblur="this.style.borderColor='rgba(255,255,255,.08)'"></textarea>
+          </div>
 
-        <button (click)="send()" [disabled]="sending()"
-                class="btn-accent w-full flex items-center justify-center gap-2"
-                [style.opacity]="sending() ? '.6' : '1'">
-          @if (sending()) {
-            <svg class="animate-spin" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/>
-            </svg>
-            Sending…
-          } @else {
-            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"/>
-            </svg>
-            Send Notification
+          <!-- Recipient count -->
+          @if (recipientCount() !== null) {
+            <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:10px;background:rgba(29,155,240,.06);border:1px solid rgba(29,155,240,.15);">
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#1d9bf0" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/>
+              </svg>
+              <span style="font-size:13px;color:#71767b;">
+                Will be sent to <strong style="color:#e7e9ea;">{{ recipientCount() }}</strong> user{{ recipientCount() !== 1 ? 's' : '' }}
+              </span>
+            </div>
           }
-        </button>
+
+          <button (click)="send()" [disabled]="sending()"
+                  style="padding:12px;border-radius:12px;background:#1d9bf0;color:#fff;border:none;font-size:14px;font-weight:700;cursor:pointer;transition:opacity 150ms;display:flex;align-items:center;justify-content:center;gap:8px;"
+                  [style.opacity]="sending() ? '.5' : '1'">
+            @if (sending()) {
+              <svg style="animation:spin 1s linear infinite;" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/>
+              </svg>
+              Sending…
+            } @else {
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"/>
+              </svg>
+              Send Notification
+            }
+          </button>
+        </div>
       </div>
     </div>
   `
@@ -129,9 +124,9 @@ export class SendNotificationComponent implements OnInit {
 
   notifTypes = [
     { label: 'General / System', value: 'SYSTEM' },
-    { label: 'Booking', value: 'BOOKING' },
-    { label: 'Payment', value: 'PAYMENT' },
-    { label: 'Expiry Alert', value: 'EXPIRY' },
+    { label: 'Booking',          value: 'BOOKING' },
+    { label: 'Payment',          value: 'PAYMENT' },
+    { label: 'Expiry Alert',     value: 'EXPIRY' },
   ];
 
   audience  = 'ALL';
