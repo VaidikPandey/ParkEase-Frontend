@@ -5,12 +5,27 @@ import { Payment } from '../models/parking.models';
 
 export type PaymentMode = 'CARD' | 'UPI' | 'WALLET' | 'CASH';
 
+export interface RazorpayOrderRequest {
+  bookingId: number;
+  amount: number;
+}
+
+export interface RazorpayOrderResponse {
+  orderId: string;
+  amount: number;
+  currency: string;
+  keyId: string;
+}
+
 export interface ProcessPaymentRequest {
   bookingId: number;
   lotId: number;
   amount: number;
   mode: PaymentMode;
   description?: string;
+  razorpayPaymentId?: string;
+  razorpayOrderId?: string;
+  razorpaySignature?: string;
 }
 
 export interface RefundRequest {
@@ -23,6 +38,10 @@ export class PaymentService {
   private readonly API = '/api/v1/payments';
 
   constructor(private http: HttpClient) {}
+
+  createOrder(req: RazorpayOrderRequest): Observable<RazorpayOrderResponse> {
+    return this.http.post<RazorpayOrderResponse>(`${this.API}/create-order`, req);
+  }
 
   processPayment(req: ProcessPaymentRequest): Observable<Payment> {
     return this.http.post<Payment>(this.API, req);

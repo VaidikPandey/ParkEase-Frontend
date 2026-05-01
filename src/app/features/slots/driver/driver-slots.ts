@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Subject, forkJoin, takeUntil } from 'rxjs';
 import { ParkingService } from '../../../core/services/parking.service';
 import { VehicleService } from '../../../core/services/vehicle.service';
+import { BookingService } from '../../../core/services/booking.service';
 import { ParkingLot, Vehicle, Booking } from '../../../core/models/parking.models';
 import { DriverBrowseComponent } from './driver-browse';
 import { DriverNearbyComponent } from './driver-nearby';
@@ -59,7 +60,7 @@ import { DriverPaymentModalComponent } from './driver-payment-modal';
         <app-driver-payment-modal
           [booking]="paymentBooking()!"
           [storedCost]="storedCost()"
-          (closed)="clearPayment()"
+          (closed)="onPaymentClosed()"
           (done)="clearPayment()" />
       }
     </div>
@@ -68,6 +69,7 @@ import { DriverPaymentModalComponent } from './driver-payment-modal';
 export class DriverSlotsComponent implements OnInit, OnDestroy {
   private parking    = inject(ParkingService);
   private vehicleSvc = inject(VehicleService);
+  private bookingSvc = inject(BookingService);
   private destroy$   = new Subject<void>();
 
   driverMode     = signal<'browse' | 'nearby' | 'bookings'>('browse');
@@ -105,4 +107,14 @@ export class DriverSlotsComponent implements OnInit, OnDestroy {
   }
 
   clearPayment() { this.paymentBooking.set(null); }
+
+  onPaymentClosed() {
+    const booking = this.paymentBooking();
+    if (booking) {
+      this.bookingSvc.cancel(booking.bookingId, 'CHANGE_OF_PLANS')
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({ error: () => {} });
+    }
+    this.paymentBooking.set(null);
+  }
 }

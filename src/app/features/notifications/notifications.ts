@@ -59,7 +59,7 @@ import { Notification } from '../../core/models/parking.models';
               <div style="flex:1;min-width:0;">
                 <p style="font-size:14px;font-weight:700;color:#e7e9ea;margin:0 0 3px;">{{ n.title }}</p>
                 <p style="font-size:13px;color:#71767b;margin:0 0 6px;line-height:1.5;">{{ n.message }}</p>
-                <p style="font-size:11px;color:#536471;margin:0;">{{ n.sentAt | date:'dd MMM yyyy, h:mm a' }}</p>
+                <p style="font-size:11px;color:#536471;margin:0;">{{ timeAgo(n.sentAt) }}</p>
               </div>
               <!-- Actions -->
               <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
@@ -120,6 +120,16 @@ export class NotificationsComponent implements OnInit {
       this.svc.unreadCount.set(0);
       this.toast.success('All notifications marked as read.');
     });
+  }
+
+  timeAgo(sentAt: string): string {
+    if (!sentAt) return '';
+    const diff = Math.floor((Date.now() - new Date(sentAt.endsWith('Z') ? sentAt : sentAt + 'Z').getTime()) / 1000);
+    if (diff < 60)    return 'just now';
+    if (diff < 3600)  return `${Math.floor(diff / 60)}m ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+    if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`;
+    return new Date(sentAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
   }
 
   remove(id: number) {

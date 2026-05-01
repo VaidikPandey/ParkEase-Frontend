@@ -85,87 +85,132 @@ import { ParkingSpot, SpotType, Vehicle, Booking } from '../../../core/models/pa
     <!-- Booking modal -->
     @if (bookingSpot()) {
       <div class="fixed inset-0 z-50 flex items-center justify-center p-4"
-           style="background:rgba(0,0,0,.6);backdrop-filter:blur(4px);" @fadeIn
+           style="background:rgba(0,0,0,.72);backdrop-filter:blur(6px);" @fadeIn
            (click)="closeBooking()">
-        <div class="card p-6 w-full relative" style="max-width:440px;" (click)="$event.stopPropagation()" @scaleIn>
-          <button (click)="closeBooking()"
-                  style="position:absolute;top:16px;right:16px;background:none;border:none;cursor:pointer;color:var(--text-secondary);font-size:20px;line-height:1;">✕</button>
+        <div class="w-full relative" style="max-width:480px;background:var(--bg-primary);border:1px solid var(--border);border-radius:20px;box-shadow:0 32px 80px rgba(0,0,0,.5);" (click)="$event.stopPropagation()" @scaleIn>
 
-          <h3 style="font-size:18px;font-weight:800;color:var(--text-primary);margin:0 0 4px;">Book Spot {{ bookingSpot()!.spotNumber }}</h3>
-          <p style="font-size:13px;color:var(--text-secondary);margin:0 0 20px;">
-            Floor {{ bookingSpot()!.floor }} · {{ bookingSpot()!.spotType }} · ₹{{ bookingSpot()!.pricePerHour }}/hr
-          </p>
+          <!-- Accent bar -->
+          <div style="height:3px;border-radius:20px 20px 0 0;background:linear-gradient(90deg,var(--accent),#7c3aed);"></div>
 
-          <div class="grid grid-cols-2 gap-2 mb-4">
-            <button (click)="bookingType = 'WALK_IN'"
-                    class="py-2.5 rounded-xl text-sm font-semibold transition-all"
-                    [style.background]="bookingType === 'WALK_IN' ? 'var(--accent-dim)' : 'var(--bg-hover)'"
-                    [style.border]="'1px solid ' + (bookingType === 'WALK_IN' ? 'var(--accent)' : 'var(--border)')"
-                    [style.color]="bookingType === 'WALK_IN' ? 'var(--accent)' : 'var(--text-secondary)'"
-                    style="cursor:pointer;outline:none;">Walk-In</button>
-            <button (click)="bookingType = 'PRE_BOOKING'"
-                    class="py-2.5 rounded-xl text-sm font-semibold transition-all"
-                    [style.background]="bookingType === 'PRE_BOOKING' ? 'var(--accent-dim)' : 'var(--bg-hover)'"
-                    [style.border]="'1px solid ' + (bookingType === 'PRE_BOOKING' ? 'var(--accent)' : 'var(--border)')"
-                    [style.color]="bookingType === 'PRE_BOOKING' ? 'var(--accent)' : 'var(--text-secondary)'"
-                    style="cursor:pointer;outline:none;">Pre-Book</button>
-          </div>
-
-          <div class="grid grid-cols-2 gap-3 mb-4">
-            <div>
-              <p style="font-size:12px;color:var(--text-secondary);margin:0 0 4px;">Start Time</p>
-              <input [(ngModel)]="bookStart" type="datetime-local"
-                     class="w-full px-3 py-2.5 rounded-xl text-sm"
-                     style="background:var(--bg-secondary);border:1px solid var(--border);color:var(--text-primary);outline:none;"/>
+          <div style="padding:24px;">
+            <!-- Header -->
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;">
+              <div>
+                <h3 style="font-size:18px;font-weight:800;color:var(--text-primary);margin:0 0 4px;letter-spacing:-.2px;">
+                  Spot {{ bookingSpot()!.spotNumber }}
+                </h3>
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                  <span style="font-size:12px;color:var(--text-secondary);">Floor {{ bookingSpot()!.floor }}</span>
+                  <span style="color:var(--border);">·</span>
+                  <span style="font-size:12px;color:var(--text-secondary);">{{ bookingSpot()!.spotType }}</span>
+                  <span style="color:var(--border);">·</span>
+                  <span style="font-size:12px;font-weight:700;color:var(--accent);">₹{{ bookingSpot()!.pricePerHour }}/hr</span>
+                </div>
+              </div>
+              <button (click)="closeBooking()" style="background:var(--bg-hover);border:none;cursor:pointer;color:var(--text-secondary);width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+              </button>
             </div>
-            <div>
-              <p style="font-size:12px;color:var(--text-secondary);margin:0 0 4px;">End Time</p>
-              <input [(ngModel)]="bookEnd" type="datetime-local"
-                     class="w-full px-3 py-2.5 rounded-xl text-sm"
-                     style="background:var(--bg-secondary);border:1px solid var(--border);color:var(--text-primary);outline:none;"/>
-            </div>
-          </div>
 
-          <div class="mb-4">
-            <p style="font-size:12px;color:var(--text-secondary);margin:0 0 4px;">Vehicle Plate</p>
-            @if (vehicles().length > 0) {
-              <select [(ngModel)]="bookPlate"
-                      class="w-full px-3 py-2.5 rounded-xl text-sm"
-                      style="background:var(--bg-secondary);border:1px solid var(--border);color:var(--text-primary);outline:none;">
-                @for (v of vehicles(); track v.id) {
-                  <option [value]="v.plate">{{ v.plate }} ({{ v.vehicleType }})</option>
-                }
-                <option value="__manual__">Enter manually…</option>
-              </select>
-              @if (bookPlate === '__manual__') {
-                <input [(ngModel)]="bookPlateManual" type="text" placeholder="Enter plate"
-                       class="w-full px-3 py-2.5 rounded-xl text-sm mt-2"
-                       style="background:var(--bg-secondary);border:1px solid var(--border);color:var(--text-primary);outline:none;text-transform:uppercase;"/>
-              }
-            } @else {
-              <input [(ngModel)]="bookPlateManual" type="text" placeholder="e.g. MH12AB1234"
-                     class="w-full px-3 py-2.5 rounded-xl text-sm"
-                     style="background:var(--bg-secondary);border:1px solid var(--border);color:var(--text-primary);outline:none;text-transform:uppercase;"/>
+            <!-- Type toggle -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px;">
+              <button (click)="bookingType = 'WALK_IN'"
+                      style="padding:10px;border-radius:12px;font-size:13px;font-weight:600;cursor:pointer;outline:none;transition:all 150ms;display:flex;align-items:center;justify-content:center;gap:6px;"
+                      [style.background]="bookingType === 'WALK_IN' ? 'var(--accent-dim)' : 'var(--bg-secondary)'"
+                      [style.border]="'1px solid ' + (bookingType === 'WALK_IN' ? 'var(--accent)' : 'var(--border)')"
+                      [style.color]="bookingType === 'WALK_IN' ? 'var(--accent)' : 'var(--text-secondary)'">
+                <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z"/>
+                </svg>
+                Walk-In
+              </button>
+              <button (click)="bookingType = 'PRE_BOOKING'"
+                      style="padding:10px;border-radius:12px;font-size:13px;font-weight:600;cursor:pointer;outline:none;transition:all 150ms;display:flex;align-items:center;justify-content:center;gap:6px;"
+                      [style.background]="bookingType === 'PRE_BOOKING' ? 'var(--accent-dim)' : 'var(--bg-secondary)'"
+                      [style.border]="'1px solid ' + (bookingType === 'PRE_BOOKING' ? 'var(--accent)' : 'var(--border)')"
+                      [style.color]="bookingType === 'PRE_BOOKING' ? 'var(--accent)' : 'var(--text-secondary)'">
+                <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"/>
+                </svg>
+                Pre-Book
+              </button>
+            </div>
+
+            <!-- Time pickers -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+              <div>
+                <p style="font-size:11px;font-weight:600;color:var(--text-secondary);margin:0 0 6px;text-transform:uppercase;letter-spacing:.06em;">From</p>
+                <input [(ngModel)]="bookStart" type="datetime-local"
+                       style="width:100%;padding:10px 12px;border-radius:10px;font-size:13px;background:var(--bg-secondary);border:1px solid var(--border);color:var(--text-primary);outline:none;box-sizing:border-box;"
+                       onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"/>
+              </div>
+              <div>
+                <p style="font-size:11px;font-weight:600;color:var(--text-secondary);margin:0 0 6px;text-transform:uppercase;letter-spacing:.06em;">To</p>
+                <input [(ngModel)]="bookEnd" type="datetime-local"
+                       style="width:100%;padding:10px 12px;border-radius:10px;font-size:13px;background:var(--bg-secondary);border:1px solid var(--border);color:var(--text-primary);outline:none;box-sizing:border-box;"
+                       onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"/>
+              </div>
+            </div>
+
+            <!-- Duration hint -->
+            @if (durationHours() > 0) {
+              <div style="margin-bottom:16px;padding:8px 12px;border-radius:10px;background:var(--bg-secondary);border:1px solid var(--border);display:flex;align-items:center;gap:8px;" @fadeIn>
+                <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="var(--text-secondary)" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <span style="font-size:12px;color:var(--text-secondary);">Duration: <strong style="color:var(--text-primary);">{{ durationLabel() }}</strong></span>
+              </div>
             }
-          </div>
 
-          @if (estimatedCost() > 0) {
-            <div class="mb-4 px-4 py-3 rounded-xl flex items-center justify-between" @fadeIn
-                 style="background:var(--accent-dim);border:1px solid rgba(29,155,240,.2);">
-              <span style="font-size:13px;color:var(--text-secondary);">Estimated cost</span>
-              <span style="font-size:16px;font-weight:800;color:var(--accent);">₹{{ estimatedCost() }}</span>
+            <!-- Vehicle plate -->
+            <div style="margin-bottom:16px;">
+              <p style="font-size:11px;font-weight:600;color:var(--text-secondary);margin:0 0 6px;text-transform:uppercase;letter-spacing:.06em;">Vehicle Plate</p>
+              @if (vehicles().length > 0) {
+                <select [(ngModel)]="bookPlate"
+                        style="width:100%;padding:10px 12px;border-radius:10px;font-size:13px;background:var(--bg-secondary);border:1px solid var(--border);color:var(--text-primary);outline:none;box-sizing:border-box;"
+                        onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+                  @for (v of vehicles(); track v.id) {
+                    <option [value]="v.plate">{{ v.plate }} · {{ v.vehicleType }}</option>
+                  }
+                  <option value="__manual__">Enter manually…</option>
+                </select>
+                @if (bookPlate === '__manual__') {
+                  <input [(ngModel)]="bookPlateManual" type="text" placeholder="e.g. MH12AB1234"
+                         style="width:100%;padding:10px 12px;border-radius:10px;font-size:13px;background:var(--bg-secondary);border:1px solid var(--border);color:var(--text-primary);outline:none;box-sizing:border-box;margin-top:8px;text-transform:uppercase;"
+                         onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"/>
+                }
+              } @else {
+                <input [(ngModel)]="bookPlateManual" type="text" placeholder="e.g. MH12AB1234"
+                       style="width:100%;padding:10px 12px;border-radius:10px;font-size:13px;background:var(--bg-secondary);border:1px solid var(--border);color:var(--text-primary);outline:none;box-sizing:border-box;text-transform:uppercase;"
+                       onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"/>
+              }
             </div>
-          }
 
-          @if (bookingError()) {
-            <p class="mb-3" style="font-size:13px;color:#f4212e;" @fadeIn>{{ bookingError() }}</p>
-          }
+            <!-- Cost estimate -->
+            @if (estimatedCost() > 0) {
+              <div style="margin-bottom:16px;padding:14px 16px;border-radius:12px;background:linear-gradient(135deg,var(--accent-dim),rgba(124,58,237,.06));border:1px solid rgba(29,155,240,.2);display:flex;align-items:center;justify-content:space-between;" @fadeIn>
+                <div>
+                  <p style="font-size:11px;color:var(--text-secondary);margin:0 0 2px;text-transform:uppercase;letter-spacing:.06em;">Estimated Total</p>
+                  <p style="font-size:11px;color:var(--text-secondary);margin:0;">Actual fare charged on checkout</p>
+                </div>
+                <span style="font-size:22px;font-weight:900;color:var(--accent);letter-spacing:-.5px;">₹{{ estimatedCost() }}</span>
+              </div>
+            }
 
-          <button (click)="confirmBooking()" [disabled]="bookingLoading()"
-                  class="w-full btn-accent py-3"
-                  [style.opacity]="bookingLoading() ? '.6' : '1'">
-            {{ bookingLoading() ? 'Confirming…' : 'Confirm & Pay' }}
-          </button>
+            @if (bookingError()) {
+              <div style="margin-bottom:12px;padding:10px 14px;border-radius:10px;background:rgba(244,33,46,.08);border:1px solid rgba(244,33,46,.2);" @fadeIn>
+                <p style="font-size:13px;color:#f4212e;margin:0;">{{ bookingError() }}</p>
+              </div>
+            }
+
+            <button (click)="confirmBooking()" [disabled]="bookingLoading()"
+                    style="width:100%;padding:13px;border-radius:12px;font-size:14px;font-weight:700;background:var(--accent);color:#fff;border:none;cursor:pointer;transition:opacity 150ms;letter-spacing:.02em;"
+                    [style.opacity]="bookingLoading() ? '.6' : '1'">
+              {{ bookingLoading() ? 'Reserving spot…' : 'Reserve & Pay — ₹' + (estimatedCost() || bookingSpot()!.pricePerHour) }}
+            </button>
+          </div>
         </div>
       </div>
     }
@@ -204,11 +249,26 @@ export class DriverSpotGridComponent implements OnDestroy {
   bookingLoading = signal(false);
   bookingError   = signal('');
 
-  estimatedCost = computed(() => {
-    if (!this.bookStart || !this.bookEnd || !this.bookingSpot()) return 0;
+  durationHours = computed(() => {
+    if (!this.bookStart || !this.bookEnd) return 0;
     const ms = new Date(this.bookEnd).getTime() - new Date(this.bookStart).getTime();
-    if (ms <= 0) return 0;
-    return Math.ceil((ms / 3_600_000) * this.bookingSpot()!.pricePerHour);
+    return ms > 0 ? ms / 3_600_000 : 0;
+  });
+
+  durationLabel = computed(() => {
+    const h = this.durationHours();
+    if (h <= 0) return '';
+    const hrs  = Math.floor(h);
+    const mins = Math.round((h - hrs) * 60);
+    if (hrs === 0) return `${mins}m`;
+    if (mins === 0) return `${hrs}h`;
+    return `${hrs}h ${mins}m`;
+  });
+
+  estimatedCost = computed(() => {
+    const h = this.durationHours();
+    if (h <= 0 || !this.bookingSpot()) return 0;
+    return Math.ceil(h * this.bookingSpot()!.pricePerHour);
   });
 
   constructor() {

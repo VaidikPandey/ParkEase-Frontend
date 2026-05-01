@@ -2,7 +2,9 @@ import { Component, OnDestroy, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { trigger, transition, style, animate } from '@angular/animations';
-import { Subject, takeUntil } from 'rxjs';
+import { Subject, takeUntil, firstValueFrom } from 'rxjs';
+
+declare const Razorpay: any;
 import { BookingService } from '../../../core/services/booking.service';
 import { PaymentService } from '../../../core/services/payment.service';
 import { Booking } from '../../../core/models/parking.models';
@@ -98,7 +100,9 @@ import { Booking } from '../../../core/models/parking.models';
                              style="background:var(--bg-secondary);border:1px solid var(--border);color:var(--text-primary);outline:none;"/>
                       <button (click)="doExtend(b)"
                               class="px-3 py-2 rounded-xl text-sm font-semibold"
-                              style="background:var(--accent);color:#fff;border:none;cursor:pointer;">Confirm</button>
+                              style="background:var(--accent);color:#fff;border:none;cursor:pointer;white-space:nowrap;">
+                        {{ extraCharge(b) ? 'Pay & Extend' : 'Extend' }}
+                      </button>
                       <button (click)="extendingId.set(null)"
                               style="background:none;border:none;cursor:pointer;color:var(--text-secondary);font-size:16px;padding:0 6px;">✕</button>
                     </div>
@@ -128,7 +132,7 @@ import { Booking } from '../../../core/models/parking.models';
                     }
                     Check In
                   </button>
-                  <button (click)="extendingId.set(b.bookingId)"
+                  <button (click)="openExtend(b)"
                           class="px-3 py-2.5 rounded-xl text-sm font-semibold"
                           style="background:var(--bg-hover);border:1px solid var(--border);color:var(--text-secondary);cursor:pointer;">
                     Extend
@@ -179,7 +183,14 @@ export class DriverMyBookingsComponent implements OnDestroy {
   extendingId     = signal<number | null>(null);
   extendNewEnd: Record<number, string> = {};
 
-  constructor() { this.loadMyBookings(); }
+  constructor() {
+    this.loadMyBookings();
+    if (!(window as any).Razorpay) {
+      const s = document.createElement('script');
+      s.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      document.body.appendChild(s);
+    }
+  }
 
   ngOnDestroy() { this.destroy$.next(); this.destroy$.complete(); }
 
@@ -225,6 +236,18 @@ export class DriverMyBookingsComponent implements OnDestroy {
     });
   }
 
+  openExtend(booking: Booking) {
+    const end = new Date(booking.endTime.endsWith('Z') ? booking.endTime : booking.endTime + 'Z');
+    end.setHours(end.getHours() + 1);
+    this.extendNewEnd[booking.bookingId] = this.toLocalDT(end);
+    this.extendingId.set(booking.bookingId);
+  }
+
+  private toLocalDT(d: Date): string {
+    const p = (n: number) => n.toString().padStart(2, '0');
+    return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+  }
+
   onExtendEndChange() { /* triggers extraCharge() recompute via template binding */ }
 
   extraCharge(booking: Booking): number | null {
@@ -238,14 +261,41 @@ export class DriverMyBookingsComponent implements OnDestroy {
     return extra > 0 ? Math.round(extra * 100) / 100 : null;
   }
 
-  doExtend(booking: Booking) {
-    const newEnd = this.extendNewEnd[booking.bookingId];
-    if (!newEnd) return;
-    this.bookingSvc.extend(booking.bookingId, new Date(newEnd).toISOString().slice(0, 19))
-      .pipe(takeUntil(this.destroy$)).subscribe({
-        next: () => { this.extendingId.set(null); this.loadMyBookings(); },
-        error: (err: any) => { this.refundError.set(err?.error?.message ?? 'Extend failed.'); }
-      });
+  async doExtend(booking: Booking) {
+    const newEndStr = this.extendNewEnd[booking.bookingId];
+    if (!newEndStr) return;
+
+    const extra = this.extraCharge(booking);
+    const newEndIso = new Date(newEndStr).toISOString().slice(0, 19);
+
+    const callExtend = () => {
+      this.bookingSvc.extend(booking.bookingId, newEndIso)
+        .pipe(takeUntil(this.destroy$)).subscribe({
+          next: () => { this.extendingId.set(null); this.loadMyBookings(); },
+          error: (err: any) => { this.refundError.set(err?.error?.message ?? 'Extend failed.'); }
+        });
+    };
+
+    if (!extra || extra <= 0) { callExtend(); return; }
+
+    try {
+      const order = await firstValueFrom(this.paySvc.createOrder({ bookingId: booking.bookingId, amount: extra }));
+      const options = {
+        key: order.keyId,
+        amount: order.amount,
+        currency: order.currency,
+        name: 'ParkEase — Booking Extension',
+        description: `Extension for Booking #${booking.bookingId}`,
+        order_id: order.orderId,
+        handler: () => callExtend(),
+        modal: { ondismiss: () => {} },
+        prefill: { name: 'ParkEase User' },
+        theme: { color: '#1d9bf0' },
+      };
+      new Razorpay(options).open();
+    } catch (e: any) {
+      this.refundError.set(e?.message ?? 'Could not initiate payment for extension.');
+    }
   }
 
   canCancelRefund(status: string) { return status === 'PENDING' || status === 'CONFIRMED'; }
