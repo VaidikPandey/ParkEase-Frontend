@@ -4,7 +4,7 @@ import { Router } from '@angular/router';
 
 const authGuard = () => {
   const hasUser = !!sessionStorage.getItem('user');
-  return hasUser ? true : inject(Router).createUrlTree(['/login']);
+  return hasUser ? true : inject(Router).createUrlTree(['/home']);
 };
 
 export const routes: Routes = [
