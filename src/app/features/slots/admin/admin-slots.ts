@@ -1,11 +1,11 @@
-import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil, forkJoin } from 'rxjs';
 import { ParkingService } from '../../../core/services/parking.service';
-import { AuthService } from '../../../core/services/auth.service';
 import { PaymentService } from '../../../core/services/payment.service';
-import { ParkingSpot, ParkingLot, SpotType } from '../../../core/models/parking.models';
+import { ParkingSpot, ParkingLot } from '../../../core/models/parking.models';
+import { ThemeSelectComponent, ThemeSelectOption } from '../../../shared/components/theme-select/theme-select';
 
 const spotStatusColor: Record<string, string> = { AVAILABLE: '#00ba7c', RESERVED: '#ffd400', OCCUPIED: '#f4212e' };
 const spotStatusBg:    Record<string, string> = { AVAILABLE: 'rgba(0,186,124,.12)', RESERVED: 'rgba(255,212,0,.1)', OCCUPIED: 'rgba(244,33,46,.1)' };
@@ -13,7 +13,7 @@ const spotStatusBg:    Record<string, string> = { AVAILABLE: 'rgba(0,186,124,.12
 @Component({
   selector: 'app-admin-slots',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ThemeSelectComponent],
   template: `
     <div style="max-width:1100px;margin:0 auto;padding:28px 24px;min-height:100%;" class="anim-in">
 
@@ -119,13 +119,16 @@ const spotStatusBg:    Record<string, string> = { AVAILABLE: 'rgba(0,186,124,.12
 
       <!-- SPOTS TAB -->
       @if (adminTab() === 'spots') {
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap;">
-          <select [(ngModel)]="adminLotId" (ngModelChange)="onAdminLotChange()"
-                  style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:9px 14px;font-size:13px;color:#e7e9ea;outline:none;cursor:pointer;">
-            @for (lot of allLots(); track lot.lotId) {
-              <option [value]="lot.lotId" style="background:#1c1c1c;">{{ lot.name }}</option>
-            }
-          </select>
+        <div style="display:flex;align-items:flex-end;gap:12px;margin-bottom:20px;flex-wrap:wrap;">
+          <app-theme-select
+            label="Select Lot"
+            placeholder="Choose a lot"
+            width="280px"
+            [searchable]="true"
+            [options]="adminLotOptions()"
+            [value]="adminLotId ? adminLotId.toString() : ''"
+            [allowClear]="false"
+            (valueChange)="selectAdminLot($event)" />
           <div style="margin-left:auto;display:flex;gap:14px;">
             @for (leg of legend; track leg.label) {
               <div style="display:flex;align-items:center;gap:6px;">
@@ -150,10 +153,10 @@ const spotStatusBg:    Record<string, string> = { AVAILABLE: 'rgba(0,186,124,.12
           <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px;">
             @for (spot of allSpots(); track spot.spotId) {
               <div style="display:flex;flex-direction:column;align-items:center;justify-content:space-between;border-radius:12px;border:1.5px solid;padding:10px 6px;min-height:100px;"
-                   [style.background]="spotStatusBg[spot.status] ?? 'rgba(255,255,255,.025)'"
-                   [style.border-color]="spotStatusColor[spot.status] ?? 'rgba(255,255,255,.07)'">
+                   [style.background]="spotStatusBg[spot.status]"
+                   [style.border-color]="spotStatusColor[spot.status]">
                 <div style="display:flex;flex-direction:column;align-items:center;flex:1;justify-content:center;gap:2px;">
-                  <span style="font-size:13px;font-weight:700;" [style.color]="spotStatusColor[spot.status] ?? '#e7e9ea'">{{ spot.spotNumber }}</span>
+                  <span style="font-size:13px;font-weight:700;" [style.color]="spotStatusColor[spot.status]">{{ spot.spotNumber }}</span>
                   <span style="font-size:10px;color:#71767b;">F{{ spot.floor }}</span>
                   <span style="font-size:9px;color:#536471;">{{ spot.spotType | slice:0:3 }}</span>
                   <span style="font-size:9px;font-weight:600;color:#71767b;">₹{{ spot.pricePerHour }}/h</span>
@@ -245,13 +248,16 @@ const spotStatusBg:    Record<string, string> = { AVAILABLE: 'rgba(0,186,124,.12
               <p style="font-size:14px;font-weight:700;color:#e7e9ea;margin:0;">Revenue by Lot</p>
             </div>
             <div style="padding:20px 24px;display:flex;flex-direction:column;gap:16px;">
-              <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
-                <select [(ngModel)]="adminRevLotId"
-                        style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:9px 12px;font-size:13px;color:#e7e9ea;outline:none;min-width:200px;cursor:pointer;">
-                  @for (lot of allLots(); track lot.lotId) {
-                    <option [value]="lot.lotId" style="background:#1c1c1c;">{{ lot.name }} — {{ lot.city }}</option>
-                  }
-                </select>
+              <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
+                <app-theme-select
+                  label="Lot"
+                  placeholder="Choose a lot"
+                  width="280px"
+                  [searchable]="true"
+                  [options]="adminLotOptions()"
+                  [value]="adminRevLotId ? adminRevLotId.toString() : ''"
+                  [allowClear]="false"
+                  (valueChange)="adminRevLotId = +$event" />
                 <button (click)="loadLotRevenue()" [disabled]="adminRevenueLoading()"
                         style="padding:9px 18px;border-radius:9999px;background:#1d9bf0;color:#fff;border:none;font-size:13px;font-weight:700;cursor:pointer;transition:opacity 150ms;"
                         [style.opacity]="adminRevenueLoading() ? '.5' : '1'">Fetch</button>
@@ -278,7 +284,6 @@ const spotStatusBg:    Record<string, string> = { AVAILABLE: 'rgba(0,186,124,.12
 })
 export class AdminSlotsComponent implements OnInit, OnDestroy {
   private parking  = inject(ParkingService);
-  private auth     = inject(AuthService);
   private paySvc   = inject(PaymentService);
   private destroy$ = new Subject<void>();
 
@@ -307,7 +312,13 @@ export class AdminSlotsComponent implements OnInit, OnDestroy {
     { id: 'revenue' as const, label: 'Revenue' },
   ];
 
-  spotTypes: SpotType[] = ['STANDARD','COMPACT','LARGE','EV_ONLY','HANDICAPPED'];
+  adminLotOptions = computed<ThemeSelectOption[]>(() =>
+    this.allLots().map(lot => ({
+      label: lot.name,
+      value: String(lot.lotId),
+      meta: `${lot.city} · ${lot.status}`,
+    }))
+  );
   legend = [
     { label: 'Available', color: '#00ba7c' },
     { label: 'Reserved',  color: '#ffd400' },
@@ -342,6 +353,11 @@ export class AdminSlotsComponent implements OnInit, OnDestroy {
   }
 
   onAdminLotChange() { this.loadAdminSpots(); }
+
+  selectAdminLot(lotId: string) {
+    this.adminLotId = +lotId;
+    this.loadAdminSpots();
+  }
 
   adminViewSpots(lotId: number) {
     this.adminLotId = lotId;

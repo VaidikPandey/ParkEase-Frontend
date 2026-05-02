@@ -6,11 +6,12 @@ import { Subject, takeUntil } from 'rxjs';
 import { ParkingService } from '../../../core/services/parking.service';
 import { ParkingLot, Vehicle, Booking } from '../../../core/models/parking.models';
 import { DriverSpotGridComponent } from './driver-spot-grid';
+import { ThemeSelectComponent, ThemeSelectOption } from '../../../shared/components/theme-select/theme-select';
 
 @Component({
   selector: 'app-driver-nearby',
   standalone: true,
-  imports: [CommonModule, FormsModule, DriverSpotGridComponent],
+  imports: [CommonModule, FormsModule, DriverSpotGridComponent, ThemeSelectComponent],
   animations: [
     trigger('fadeIn', [transition(':enter', [style({ opacity: 0 }), animate('200ms ease', style({ opacity: 1 }))])]),
     trigger('fadeUp', [transition(':enter', [style({ opacity: 0, transform: 'translateY(16px)' }), animate('360ms cubic-bezier(.4,0,.2,1)', style({ opacity: 1, transform: 'translateY(0)' }))])]),
@@ -32,16 +33,14 @@ import { DriverSpotGridComponent } from './driver-spot-grid';
                  style="background:var(--bg-secondary);border:1px solid var(--border);color:var(--text-primary);outline:none;width:150px;"/>
         </div>
         <div>
-          <p style="font-size:11px;color:var(--text-secondary);margin:0 0 5px;text-transform:uppercase;letter-spacing:.05em;">Radius (km)</p>
-          <select [(ngModel)]="nearbyRadius"
-                  class="px-3 py-2.5 rounded-xl text-sm"
-                  style="background:var(--bg-secondary);border:1px solid var(--border);color:var(--text-primary);outline:none;">
-            <option [value]="1">1 km</option>
-            <option [value]="2">2 km</option>
-            <option [value]="5">5 km</option>
-            <option [value]="10">10 km</option>
-            <option [value]="25">25 km</option>
-          </select>
+          <app-theme-select
+            label="Radius (km)"
+            placeholder="Radius"
+            width="150px"
+            [options]="radiusOptions"
+            [value]="nearbyRadius.toString()"
+            [allowClear]="false"
+            (valueChange)="nearbyRadius = +$event" />
         </div>
         <button (click)="detectLocation()" [disabled]="detectingLocation()"
                 class="px-4 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2"
@@ -161,6 +160,13 @@ export class DriverNearbyComponent implements OnDestroy {
   nearbyLat         = 0;
   nearbyLng         = 0;
   nearbyRadius      = 5;
+  radiusOptions: ThemeSelectOption[] = [
+    { label: '1 km', value: '1' },
+    { label: '2 km', value: '2' },
+    { label: '5 km', value: '5' },
+    { label: '10 km', value: '10' },
+    { label: '25 km', value: '25' },
+  ];
   nearbyLots        = signal<ParkingLot[]>([]);
   nearbyLoading     = signal(false);
   nearbyError       = signal('');

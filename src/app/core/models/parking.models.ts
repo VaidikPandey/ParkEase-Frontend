@@ -102,6 +102,21 @@ export interface UtilisationStats {
   walkInPct: number;
 }
 
+export interface DriverAnalytics {
+  driverId: number;
+  from: string;
+  to: string;
+  totalBookings: number;
+  completedBookings: number;
+  cancelledBookings: number;
+  preBookingCount: number;
+  walkInCount: number;
+  preBookingPct: number;
+  walkInPct: number;
+  totalDurationMinutes: number;
+  totalSpent: number;
+}
+
 export interface Vehicle {
   id: number;
   userId: number;

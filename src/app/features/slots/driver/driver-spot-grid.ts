@@ -7,11 +7,12 @@ import { ParkingService } from '../../../core/services/parking.service';
 import { BookingService } from '../../../core/services/booking.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { ParkingSpot, SpotType, Vehicle, Booking } from '../../../core/models/parking.models';
+import { ThemeSelectComponent, ThemeSelectOption } from '../../../shared/components/theme-select/theme-select';
 
 @Component({
   selector: 'app-driver-spot-grid',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ThemeSelectComponent],
   animations: [
     trigger('fadeIn', [transition(':enter', [style({ opacity: 0 }), animate('200ms ease', style({ opacity: 1 }))])]),
     trigger('fadeUp', [transition(':enter', [style({ opacity: 0, transform: 'translateY(16px)' }), animate('360ms cubic-bezier(.4,0,.2,1)', style({ opacity: 1, transform: 'translateY(0)' }))])]),
@@ -24,19 +25,21 @@ import { ParkingSpot, SpotType, Vehicle, Booking } from '../../../core/models/pa
   ],
   template: `
     <!-- Filters row -->
-    <div class="flex flex-wrap gap-2">
-      <select [(ngModel)]="floorFilter" (ngModelChange)="applyFilter()"
-              class="px-3 py-2 rounded-xl text-sm"
-              style="background:var(--bg-card);border:1px solid var(--border);color:var(--text-primary);outline:none;">
-        <option value="">All Floors</option>
-        @for (f of floors(); track f) { <option [value]="f">Floor {{ f }}</option> }
-      </select>
-      <select [(ngModel)]="typeFilter" (ngModelChange)="applyFilter()"
-              class="px-3 py-2 rounded-xl text-sm"
-              style="background:var(--bg-card);border:1px solid var(--border);color:var(--text-primary);outline:none;">
-        <option value="">All Types</option>
-        @for (t of spotTypes; track t) { <option [value]="t">{{ t }}</option> }
-      </select>
+    <div class="flex flex-wrap gap-2 items-end">
+      <app-theme-select
+        placeholder="All floors"
+        width="160px"
+        [options]="floorOptions()"
+        [value]="floorFilter"
+        clearLabel="All floors"
+        (valueChange)="setFloorFilter($event)" />
+      <app-theme-select
+        placeholder="All types"
+        width="180px"
+        [options]="typeOptions"
+        [value]="typeFilter"
+        clearLabel="All types"
+        (valueChange)="setTypeFilter($event)" />
       <div class="flex gap-3 ml-auto">
         @for (leg of legend; track leg.label) {
           <div class="flex items-center gap-1.5">
@@ -166,16 +169,15 @@ import { ParkingSpot, SpotType, Vehicle, Booking } from '../../../core/models/pa
 
             <!-- Vehicle plate -->
             <div style="margin-bottom:16px;">
-              <p style="font-size:11px;font-weight:600;color:var(--text-secondary);margin:0 0 6px;text-transform:uppercase;letter-spacing:.06em;">Vehicle Plate</p>
+                <p style="font-size:11px;font-weight:600;color:var(--text-secondary);margin:0 0 6px;text-transform:uppercase;letter-spacing:.06em;">Vehicle Plate</p>
               @if (vehicles().length > 0) {
-                <select [(ngModel)]="bookPlate"
-                        style="width:100%;padding:10px 12px;border-radius:10px;font-size:13px;background:var(--bg-secondary);border:1px solid var(--border);color:var(--text-primary);outline:none;box-sizing:border-box;"
-                        onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
-                  @for (v of vehicles(); track v.id) {
-                    <option [value]="v.plate">{{ v.plate }} · {{ v.vehicleType }}</option>
-                  }
-                  <option value="__manual__">Enter manually…</option>
-                </select>
+                <app-theme-select
+                  placeholder="Select vehicle"
+                  width="100%"
+                  [options]="vehicleOptions()"
+                  [value]="bookPlate"
+                  [allowClear]="false"
+                  (valueChange)="bookPlate = $event" />
                 @if (bookPlate === '__manual__') {
                   <input [(ngModel)]="bookPlateManual" type="text" placeholder="e.g. MH12AB1234"
                          style="width:100%;padding:10px 12px;border-radius:10px;font-size:13px;background:var(--bg-secondary);border:1px solid var(--border);color:var(--text-primary);outline:none;box-sizing:border-box;margin-top:8px;text-transform:uppercase;"
@@ -234,6 +236,7 @@ export class DriverSpotGridComponent implements OnDestroy {
   floorFilter = '';
   typeFilter  = '';
   spotTypes: SpotType[] = ['STANDARD', 'COMPACT', 'LARGE', 'EV_ONLY', 'HANDICAPPED'];
+  typeOptions: ThemeSelectOption[] = this.spotTypes.map(type => ({ label: type.replaceAll('_', ' '), value: type }));
   legend = [
     { label: 'Available', color: '#00ba7c' },
     { label: 'Reserved',  color: '#ffd400' },
@@ -270,6 +273,11 @@ export class DriverSpotGridComponent implements OnDestroy {
     if (h <= 0 || !this.bookingSpot()) return 0;
     return Math.ceil(h * this.bookingSpot()!.pricePerHour);
   });
+  floorOptions = computed<ThemeSelectOption[]>(() => this.floors().map(floor => ({ label: `Floor ${floor}`, value: String(floor) })));
+  vehicleOptions = computed<ThemeSelectOption[]>(() => [
+    ...this.vehicles().map(vehicle => ({ label: vehicle.plate, value: vehicle.plate, meta: vehicle.vehicleType })),
+    { label: 'Enter manually', value: '__manual__', meta: 'Use another vehicle plate' },
+  ]);
 
   constructor() {
     effect(() => {
@@ -300,6 +308,16 @@ export class DriverSpotGridComponent implements OnDestroy {
     if (this.floorFilter) r = r.filter(s => s.floor === +this.floorFilter);
     if (this.typeFilter)  r = r.filter(s => s.spotType === this.typeFilter);
     this.filtered.set(r);
+  }
+
+  setFloorFilter(value: string) {
+    this.floorFilter = value;
+    this.applyFilter();
+  }
+
+  setTypeFilter(value: string) {
+    this.typeFilter = value;
+    this.applyFilter();
   }
 
   openBooking(spot: ParkingSpot) {

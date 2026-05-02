@@ -8,6 +8,7 @@ import { PaymentService } from '../../core/services/payment.service';
 import { AuthService } from '../../core/services/auth.service';
 import { ToastService } from '../../core/services/toast.service';
 import { Booking, ParkingLot } from '../../core/models/parking.models';
+import { ThemeSelectComponent, ThemeSelectOption } from '../../shared/components/theme-select/theme-select';
 
 const STATUS_COLOR: Record<string, string> = {
   PENDING: '#ffd400', CONFIRMED: '#1d9bf0', CHECKED_IN: '#00ba7c',
@@ -17,7 +18,7 @@ const STATUS_COLOR: Record<string, string> = {
 @Component({
   selector: 'app-bookings',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ThemeSelectComponent],
   template: `
     <div style="max-width:1100px;margin:0 auto;padding:28px 24px;min-height:100%;" class="anim-in">
 
@@ -33,13 +34,15 @@ const STATUS_COLOR: Record<string, string> = {
 
           <!-- Manager lot selector -->
           @if (role === 'MANAGER') {
-            <select [(ngModel)]="selectedLotId" (ngModelChange)="loadManagerBookings()"
-                    style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:9px 14px;font-size:13px;color:#e7e9ea;outline:none;cursor:pointer;">
-              <option value="" style="background:#1c1c1c;">— Select a lot —</option>
-              @for (lot of myLots(); track lot.lotId) {
-                <option [value]="lot.lotId" style="background:#1c1c1c;">{{ lot.name }}</option>
-              }
-            </select>
+            <app-theme-select
+              label="Select Lot"
+              placeholder="Choose a lot"
+              width="280px"
+              [searchable]="true"
+              [options]="managerLotOptions()"
+              [value]="selectedLotId"
+              clearLabel="No lot selected"
+              (valueChange)="selectManagerBookingLot($event)" />
           }
         </div>
 
@@ -225,11 +228,23 @@ export class BookingsComponent implements OnInit {
   extendError   = signal('');
 
   statuses = ['PENDING', 'CONFIRMED', 'CHECKED_IN', 'CHECKED_OUT', 'CANCELLED', 'EXPIRED'];
+  managerLotOptions = computed<ThemeSelectOption[]>(() =>
+    this.myLots().map(lot => ({
+      label: lot.name,
+      value: String(lot.lotId),
+      meta: `${lot.city} · ${lot.status}`,
+    }))
+  );
 
   filtered = computed(() => {
     const f = this.statusFilter();
     return f ? this.allBookings().filter(b => b.status === f) : this.allBookings();
   });
+
+  selectManagerBookingLot(lotId: string) {
+    this.selectedLotId = lotId;
+    this.loadManagerBookings();
+  }
 
   ngOnInit() {
     if (this.role === 'DRIVER') {

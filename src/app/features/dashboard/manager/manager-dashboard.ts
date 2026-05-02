@@ -1,13 +1,12 @@
 import { Component, OnInit, OnDestroy, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { Subject, takeUntil } from 'rxjs';
 import { ParkingService } from '../../../core/services/parking.service';
 import { BookingService } from '../../../core/services/booking.service';
 import { ParkingLot, Booking } from '../../../core/models/parking.models';
 import { StatCardSkeletonComponent } from '../../../shared/components/skeleton/skeleton';
-import { PremiumCardComponent } from '../../../shared/components/premium-card/premium-card';
 import { StatCardComponent } from '../../../shared/components/stat-card/stat-card';
 import { PremiumButtonComponent } from '../../../shared/components/premium-button/premium-button';
 
@@ -27,7 +26,7 @@ const I = {
 @Component({
   selector: 'app-manager-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterLink, StatCardSkeletonComponent, PremiumCardComponent, StatCardComponent, PremiumButtonComponent],
+  imports: [CommonModule, StatCardSkeletonComponent, StatCardComponent, PremiumButtonComponent],
   template: `
     <div class="max-w-[1400px] mx-auto p-6 md:p-8 min-h-full pb-20 anim-in">
 

@@ -7,7 +7,6 @@ import { ParkingService } from '../../../core/services/parking.service';
 import { BookingService } from '../../../core/services/booking.service';
 import { ParkingLot, Booking } from '../../../core/models/parking.models';
 import { StatCardSkeletonComponent } from '../../../shared/components/skeleton/skeleton';
-import { PremiumCardComponent } from '../../../shared/components/premium-card/premium-card';
 import { StatCardComponent } from '../../../shared/components/stat-card/stat-card';
 import { PremiumButtonComponent } from '../../../shared/components/premium-button/premium-button';
 
@@ -29,7 +28,7 @@ const I = {
 @Component({
   selector: 'app-admin-dashboard',
   standalone: true,
-  imports: [CommonModule, StatCardSkeletonComponent, PremiumCardComponent, StatCardComponent, PremiumButtonComponent],
+  imports: [CommonModule, StatCardSkeletonComponent, StatCardComponent, PremiumButtonComponent],
   template: `
     <div class="max-w-[1400px] mx-auto p-6 md:p-8 min-h-full pb-20 anim-in">
 

@@ -5,32 +5,27 @@ import { Subject, takeUntil } from 'rxjs';
 import { ParkingService } from '../../../core/services/parking.service';
 import { ParkingLot, Vehicle, Booking } from '../../../core/models/parking.models';
 import { DriverSpotGridComponent } from './driver-spot-grid';
+import { ThemeSelectComponent, ThemeSelectOption } from '../../../shared/components/theme-select/theme-select';
 
 @Component({
   selector: 'app-driver-browse',
   standalone: true,
-  imports: [CommonModule, FormsModule, DriverSpotGridComponent],
+  imports: [CommonModule, FormsModule, DriverSpotGridComponent, ThemeSelectComponent],
   template: `
     <!-- City search -->
-    <div style="display:flex;gap:10px;align-items:center;margin-bottom:20px;flex-wrap:wrap;">
-      <div style="position:relative;">
-        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#71767b" stroke-width="2"
-             style="position:absolute;left:12px;top:50%;transform:translateY(-50%);pointer-events:none;">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 15.803 7.5 7.5 0 0016.803 15.803z"/>
-        </svg>
-        <input [(ngModel)]="citySearch" type="text" placeholder="Filter by city…"
-               (keyup.enter)="searchByCity()"
-               style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:9px 14px 9px 34px;font-size:13px;color:#e7e9ea;outline:none;width:180px;transition:border-color 150ms;"
-               onfocus="this.style.borderColor='#1d9bf0'" onblur="this.style.borderColor='rgba(255,255,255,.08)'"/>
-      </div>
-      <button (click)="searchByCity()" [disabled]="citySearching()"
-              style="padding:9px 16px;border-radius:10px;font-size:13px;font-weight:600;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:#71767b;cursor:pointer;transition:opacity 150ms;"
-              [style.opacity]="citySearching() ? '.5' : '1'">
-        Search
-      </button>
-      @if (citySearch) {
-        <button (click)="citySearch=''; searchByCity()"
-                style="background:none;border:none;cursor:pointer;color:#71767b;font-size:15px;padding:0 4px;line-height:1;">✕</button>
+    <div style="display:flex;gap:10px;align-items:flex-end;margin-bottom:20px;flex-wrap:wrap;">
+      <app-theme-select
+        label="Select City"
+        placeholder="All cities"
+        width="260px"
+        [searchable]="true"
+        [options]="cityOptions()"
+        [value]="citySearch"
+        clearLabel="All cities"
+        [disabled]="citySearching()"
+        (valueChange)="selectCity($event)" />
+      @if (citySearching()) {
+        <span style="height:40px;display:flex;align-items:center;font-size:12px;color:var(--text-secondary);">Loading lots...</span>
       }
     </div>
 
@@ -110,8 +105,24 @@ export class DriverBrowseComponent implements OnDestroy {
 
   activeLot   = computed(() => this.allLots().find(l => l.lotId === this.selectedLotId()) ?? null);
   visibleLots = computed(() => this.filteredLots() ?? this.allLots());
+  cityOptions = computed<ThemeSelectOption[]>(() => {
+    const counts = new Map<string, number>();
+    for (const lot of this.allLots()) {
+      const city = lot.city?.trim();
+      if (!city) continue;
+      counts.set(city, (counts.get(city) ?? 0) + 1);
+    }
+    return [...counts.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([city, count]) => ({ label: city, value: city, meta: `${count} ${count === 1 ? 'lot' : 'lots'}` }));
+  });
 
   ngOnDestroy() { this.destroy$.next(); this.destroy$.complete(); }
+
+  selectCity(city: string) {
+    this.citySearch = city;
+    this.searchByCity();
+  }
 
   searchByCity() {
     this.citySearching.set(true);

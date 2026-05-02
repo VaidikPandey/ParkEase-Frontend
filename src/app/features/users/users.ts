@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { ToastService } from '../../core/services/toast.service';
+import { ThemeSelectComponent, ThemeSelectOption } from '../../shared/components/theme-select/theme-select';
 
 interface User {
   userId: number; fullName: string; email: string; role: string;
@@ -16,7 +17,7 @@ const ROLE_COLOR: Record<string, string> = { ADMIN: '#f4212e', MANAGER: '#ffd400
 @Component({
   selector: 'app-users',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ThemeSelectComponent],
   template: `
     <div style="max-width:1100px;margin:0 auto;padding:28px 24px;min-height:100%;" class="anim-in">
 
@@ -37,13 +38,13 @@ const ROLE_COLOR: Record<string, string> = { ADMIN: '#f4212e', MANAGER: '#ffd400
                    style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:9px 14px 9px 34px;font-size:13px;color:#e7e9ea;outline:none;width:220px;transition:border-color 150ms;"
                    onfocus="this.style.borderColor='#1d9bf0'" onblur="this.style.borderColor='rgba(255,255,255,.08)'"/>
           </div>
-          <select [(ngModel)]="roleFilter" (ngModelChange)="applyFilter()"
-                  style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:9px 14px;font-size:13px;color:#e7e9ea;outline:none;cursor:pointer;">
-            <option value="" style="background:#1c1c1c;">All Roles</option>
-            <option value="ADMIN" style="background:#1c1c1c;">Admin</option>
-            <option value="MANAGER" style="background:#1c1c1c;">Manager</option>
-            <option value="DRIVER" style="background:#1c1c1c;">Driver</option>
-          </select>
+          <app-theme-select
+            placeholder="All roles"
+            width="160px"
+            [options]="roleOptions"
+            [value]="roleFilter"
+            clearLabel="All roles"
+            (valueChange)="selectRoleFilter($event)" />
         </div>
       </div>
 
@@ -211,6 +212,11 @@ export class UsersComponent implements OnInit {
   sending       = signal(false);
   search     = '';
   roleFilter = '';
+  roleOptions: ThemeSelectOption[] = [
+    { label: 'Admin', value: 'ADMIN' },
+    { label: 'Manager', value: 'MANAGER' },
+    { label: 'Driver', value: 'DRIVER' },
+  ];
 
   filtered = computed(() => this.filteredList());
 
@@ -229,6 +235,11 @@ export class UsersComponent implements OnInit {
     }
     if (this.roleFilter) r = r.filter(u => u.role === this.roleFilter);
     this.filteredList.set(r);
+  }
+
+  selectRoleFilter(role: string) {
+    this.roleFilter = role;
+    this.applyFilter();
   }
 
   toggleUser(u: User) {

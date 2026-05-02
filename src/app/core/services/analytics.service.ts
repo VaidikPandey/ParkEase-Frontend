@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { RevenueReport, HourlyTraffic, UtilisationStats } from '../models/parking.models';
+import { RevenueReport, HourlyTraffic, UtilisationStats, DriverAnalytics } from '../models/parking.models';
 
 @Injectable({ providedIn: 'root' })
 export class AnalyticsService {
@@ -10,20 +10,33 @@ export class AnalyticsService {
   constructor(private http: HttpClient) {}
 
   getRevenue(lotId: number, from: string, to: string): Observable<RevenueReport> {
-    return this.http.get<RevenueReport>(`${this.API}/revenue`, {
-      params: { lotId, from, to }
-    });
+    const params = new HttpParams()
+      .set('lotId', lotId.toString())
+      .set('from', from)
+      .set('to', to);
+    return this.http.get<RevenueReport>(`${this.API}/revenue`, { params });
   }
 
   getHourlyTraffic(lotId: number, from: string, to: string): Observable<HourlyTraffic[]> {
-    return this.http.get<HourlyTraffic[]>(`${this.API}/traffic/hourly`, {
-      params: { lotId, from, to }
-    });
+    const params = new HttpParams()
+      .set('lotId', lotId.toString())
+      .set('from', from)
+      .set('to', to);
+    return this.http.get<HourlyTraffic[]>(`${this.API}/traffic/hourly`, { params });
   }
 
   getUtilisation(lotId: number, from: string, to: string): Observable<UtilisationStats> {
-    return this.http.get<UtilisationStats>(`${this.API}/utilisation`, {
-      params: { lotId, from, to }
-    });
+    const params = new HttpParams()
+      .set('lotId', lotId.toString())
+      .set('from', from)
+      .set('to', to);
+    return this.http.get<UtilisationStats>(`${this.API}/utilisation`, { params });
+  }
+
+  getDriverAnalytics(from: string, to: string): Observable<DriverAnalytics> {
+    const params = new HttpParams()
+      .set('from', from)
+      .set('to', to);
+    return this.http.get<DriverAnalytics>(`${this.API}/my`, { params });
   }
 }
