@@ -43,6 +43,5 @@ __screenshots__/
 .DS_Store
 Thumbs.db
 
-# Environment files with secrets
-src/environments/environment.ts
-src/environments/environment.prod.ts
+# Local environment overrides (create locally if needed)
+src/environments/environment.local.ts
