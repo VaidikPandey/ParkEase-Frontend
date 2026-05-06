@@ -33,6 +33,10 @@ export class AuthService {
     );
   }
 
+  getToken(): string | null {
+    return sessionStorage.getItem('access_token');
+  }
+
   logout(): void {
     this.http.post(`${this.API}/logout`, {}, { withCredentials: true }).subscribe();
     sessionStorage.clear();
@@ -59,7 +63,9 @@ export class AuthService {
   }
 
   storeSession(res: AuthResponse): void {
-    // Tokens are stored as HttpOnly cookies by the server — only persist the user profile
+    if (res.accessToken) {
+      sessionStorage.setItem('access_token', res.accessToken);
+    }
     if (res.user) {
       sessionStorage.setItem('user', JSON.stringify(res.user));
       this.currentUser.set(res.user);
