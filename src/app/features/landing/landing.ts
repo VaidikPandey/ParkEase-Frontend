@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { trigger, transition, style, animate, query, stagger } from '@angular/animations';
 import { ThemeService } from '../../core/services/theme.service';
+import { environment } from '../../../environments/environment';
 
 interface Role {
   id: 'ADMIN' | 'MANAGER' | 'DRIVER';
@@ -347,6 +348,6 @@ export class LandingComponent {
   }
 
   googleLogin() {
-    window.location.href = 'http://localhost:8080/oauth2/authorize/google';
+    window.location.href = `${environment.apiUrl}/oauth2/authorize/google`;
   }
 }

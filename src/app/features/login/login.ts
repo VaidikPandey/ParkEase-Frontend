@@ -6,6 +6,7 @@ import { HttpClient } from '@angular/common/http';
 import { trigger, transition, style, animate } from '@angular/animations';
 import { AuthService } from '../../core/services/auth.service';
 import { ThemeService } from '../../core/services/theme.service';
+import { environment } from '../../../environments/environment';
 import { tap } from 'rxjs/operators';
 
 const DEMO: Record<string, { email: string; password: string; color: string }> = {
@@ -462,6 +463,6 @@ export class LoginComponent implements OnInit {
   googleLogin() {
     const role = this.tab() === 'signup' ? this.regRole() : (this.selectedRole() || 'DRIVER');
     sessionStorage.setItem('pending_oauth_role', role);
-    window.location.href = 'http://localhost:8080/oauth2/authorize/google';
+    window.location.href = `${environment.apiUrl}/oauth2/authorize/google`;
   }
 }
