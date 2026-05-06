@@ -219,6 +219,11 @@ const DEMO: Record<string, { email: string; password: string; color: string }> =
                       onmouseleave="this.style.background='rgba(14,165,233,0.15)'">
                 {{ loading() ? 'Signing in…' : 'Sign in' }}
               </button>
+              @if (loading()) {
+                <p style="font-size:12px;color:var(--text-secondary);text-align:center;margin-top:8px;">
+                  First request may take up to 60s — server is warming up
+                </p>
+              }
             </div>
           }
 
@@ -326,6 +331,11 @@ const DEMO: Record<string, { email: string; password: string; color: string }> =
                       onmouseleave="this.style.background='rgba(14,165,233,0.15)'">
                 {{ regLoading() ? 'Creating account…' : 'Create account' }}
               </button>
+              @if (regLoading()) {
+                <p style="font-size:12px;color:var(--text-secondary);text-align:center;margin-top:8px;">
+                  First request may take up to 60s — server is warming up
+                </p>
+              }
             </div>
           }
 
