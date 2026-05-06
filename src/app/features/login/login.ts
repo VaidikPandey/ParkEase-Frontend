@@ -444,10 +444,7 @@ export class LoginComponent implements OnInit {
     };
 
     this.http.post<any>('/api/v1/auth/register', body, { withCredentials: true }).pipe(
-      tap(res => {
-        sessionStorage.setItem('user', JSON.stringify(res.user));
-        this.auth.currentUser.set(res.user);
-      })
+      tap(res => this.auth.storeSession(res))
     ).subscribe({
       next: () => {
         this.regSuccess.set(true);
@@ -463,6 +460,6 @@ export class LoginComponent implements OnInit {
   googleLogin() {
     const role = this.tab() === 'signup' ? this.regRole() : (this.selectedRole() || 'DRIVER');
     sessionStorage.setItem('pending_oauth_role', role);
-    window.location.href = `${environment.apiUrl}/oauth2/authorize/google`;
+    window.location.href = `${environment.authServiceUrl}/oauth2/authorize/google`;
   }
 }

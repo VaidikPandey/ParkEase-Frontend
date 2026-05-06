@@ -348,6 +348,6 @@ export class LandingComponent {
   }
 
   googleLogin() {
-    window.location.href = `${environment.apiUrl}/oauth2/authorize/google`;
+    window.location.href = `${environment.authServiceUrl}/oauth2/authorize/google`;
   }
 }
