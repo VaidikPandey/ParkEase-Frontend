@@ -12,6 +12,8 @@ export interface AuthUser {
 }
 
 export interface AuthResponse {
+  accessToken: string;
+  refreshToken: string;
   tokenType: string;
   expiresIn: number;
   user: AuthUser;
@@ -27,10 +29,7 @@ export class AuthService {
 
   login(email: string, password: string): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(`${this.API}/login`, { email, password }, { withCredentials: true }).pipe(
-      tap(res => {
-        sessionStorage.setItem('user', JSON.stringify(res.user));
-        this.currentUser.set(res.user);
-      })
+      tap(res => this.storeSession(res))
     );
   }
 
@@ -43,15 +42,33 @@ export class AuthService {
 
   selectRole(role: 'DRIVER' | 'MANAGER'): Observable<AuthResponse> {
     return this.http.patch<AuthResponse>(`${this.API}/role`, { role }, { withCredentials: true }).pipe(
-      tap(res => {
-        sessionStorage.setItem('user', JSON.stringify(res.user));
-        this.currentUser.set(res.user);
-      })
+      tap(res => this.storeSession(res))
     );
+  }
+
+  refresh(): Observable<AuthResponse> {
+    const refreshToken = sessionStorage.getItem('refresh_token');
+    return this.http.post<AuthResponse>(`${this.API}/refresh`, {}, {
+      withCredentials: true,
+      headers: refreshToken ? { 'X-Refresh-Token': refreshToken } : {}
+    }).pipe(tap(res => this.storeSession(res)));
+  }
+
+  getToken(): string | null {
+    return sessionStorage.getItem('access_token');
   }
 
   isLoggedIn(): boolean {
     return !!this.currentUser();
+  }
+
+  storeSession(res: AuthResponse): void {
+    if (res.accessToken) sessionStorage.setItem('access_token', res.accessToken);
+    if (res.refreshToken) sessionStorage.setItem('refresh_token', res.refreshToken);
+    if (res.user) {
+      sessionStorage.setItem('user', JSON.stringify(res.user));
+      this.currentUser.set(res.user);
+    }
   }
 
   private loadUser(): AuthUser | null {

@@ -28,19 +28,23 @@ export class OAuthCallbackComponent implements OnInit {
   errMsg = '';
 
   ngOnInit() {
-    const params    = this.route.snapshot.queryParamMap;
-    const isNewUser = params.get('isNewUser') === 'true';
-    const userId    = params.get('userId');
-    const email     = params.get('email');
-    const fullName  = params.get('fullName');
-    const role      = params.get('role') as 'DRIVER' | 'MANAGER' | 'ADMIN' | null;
+    const params       = this.route.snapshot.queryParamMap;
+    const isNewUser    = params.get('isNewUser') === 'true';
+    const userId       = params.get('userId');
+    const email        = params.get('email');
+    const fullName     = params.get('fullName');
+    const role         = params.get('role') as 'DRIVER' | 'MANAGER' | 'ADMIN' | null;
+    const accessToken  = params.get('accessToken');
+    const refreshToken = params.get('refreshToken');
 
-    if (!userId || !email || !role) {
+    if (!userId || !email || !role || !accessToken) {
       this.status = 'Sign in failed.';
       this.errMsg = 'Incomplete response from server. Please try again.';
       return;
     }
 
+    sessionStorage.setItem('access_token', accessToken);
+    if (refreshToken) sessionStorage.setItem('refresh_token', refreshToken);
     const user = { userId: +userId, fullName: fullName ?? email, email, role };
     sessionStorage.setItem('user', JSON.stringify(user));
     this.auth.currentUser.set(user);
