@@ -46,16 +46,12 @@ export class AuthService {
     );
   }
 
-  refresh(): Observable<AuthResponse> {
-    const refreshToken = sessionStorage.getItem('refresh_token');
+  // Pass refreshToken only from OAuth callback; normal refresh relies on the cookie
+  refresh(refreshToken?: string): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(`${this.API}/refresh`, {}, {
       withCredentials: true,
       headers: refreshToken ? { 'X-Refresh-Token': refreshToken } : {}
     }).pipe(tap(res => this.storeSession(res)));
-  }
-
-  getToken(): string | null {
-    return sessionStorage.getItem('access_token');
   }
 
   isLoggedIn(): boolean {
@@ -63,8 +59,7 @@ export class AuthService {
   }
 
   storeSession(res: AuthResponse): void {
-    if (res.accessToken) sessionStorage.setItem('access_token', res.accessToken);
-    if (res.refreshToken) sessionStorage.setItem('refresh_token', res.refreshToken);
+    // Tokens are stored as HttpOnly cookies by the server — only persist the user profile
     if (res.user) {
       sessionStorage.setItem('user', JSON.stringify(res.user));
       this.currentUser.set(res.user);
