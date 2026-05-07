@@ -6,12 +6,13 @@ import { provideAnimations } from '@angular/platform-browser/animations';
 import { routes } from './app.routes';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
 import { apiUrlInterceptor } from './core/interceptors/api-url.interceptor';
+import { refreshInterceptor } from './core/interceptors/refresh.interceptor';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes),
-    provideHttpClient(withInterceptors([authInterceptor, apiUrlInterceptor])),
+    provideHttpClient(withInterceptors([authInterceptor, apiUrlInterceptor, refreshInterceptor])),
     provideAnimations(),
   ]
 };
