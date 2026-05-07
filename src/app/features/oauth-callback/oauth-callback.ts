@@ -1,6 +1,6 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 
 @Component({
@@ -22,6 +22,7 @@ import { AuthService } from '../../core/services/auth.service';
 })
 export class OAuthCallbackComponent implements OnInit {
   private route = inject(ActivatedRoute);
+  private router = inject(Router);
   private auth  = inject(AuthService);
 
   status = 'Completing sign in…';
@@ -47,11 +48,11 @@ export class OAuthCallbackComponent implements OnInit {
         if (isNewUser && pendingRole && (pendingRole === 'DRIVER' || pendingRole === 'MANAGER')) {
           this.status = 'Setting up your account…';
           this.auth.selectRole(pendingRole).subscribe({
-            next:  () => { window.location.href = '/dashboard'; },
-            error: () => { window.location.href = '/dashboard'; },
+            next:  () => { this.router.navigate(['/dashboard']); },
+            error: () => { this.router.navigate(['/dashboard']); },
           });
         } else {
-          window.location.href = '/dashboard';
+          this.router.navigate(['/dashboard']);
         }
       },
       error: () => {

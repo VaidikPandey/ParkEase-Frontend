@@ -429,7 +429,7 @@ export class LoginComponent implements OnInit {
     this.loading.set(true);
     this.error.set('');
     this.auth.login(this.email, this.password).subscribe({
-      next: () => { window.location.href = '/dashboard'; },
+      next: () => { this.router.navigate(['/dashboard']); },
       error: err => {
         this.error.set(err?.error?.message ?? 'Invalid credentials.');
         this.loading.set(false);
@@ -458,7 +458,7 @@ export class LoginComponent implements OnInit {
     ).subscribe({
       next: () => {
         this.regSuccess.set(true);
-        setTimeout(() => { window.location.href = '/dashboard'; }, 800);
+        setTimeout(() => { this.router.navigate(['/dashboard']); }, 800);
       },
       error: err => {
         this.regError.set(err?.error?.message ?? 'Registration failed. Please try again.');
