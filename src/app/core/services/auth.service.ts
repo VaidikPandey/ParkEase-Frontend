@@ -63,6 +63,7 @@ export class AuthService {
   }
 
   storeSession(res: AuthResponse): void {
+    if (!res) return;
     if (res.accessToken) {
       sessionStorage.setItem('access_token', res.accessToken);
     }

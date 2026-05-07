@@ -1,10 +1,14 @@
 import { Routes } from '@angular/router';
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
+import { AuthService } from './core/services/auth.service';
 
 const authGuard = () => {
-  const hasUser = !!sessionStorage.getItem('user');
-  return hasUser ? true : inject(Router).createUrlTree(['/home']);
+  const auth = inject(AuthService);
+  const router = inject(Router);
+  // Use in-memory signal (set synchronously by storeSession) with sessionStorage as fallback
+  const isLoggedIn = auth.isLoggedIn() || !!sessionStorage.getItem('access_token');
+  return isLoggedIn ? true : router.createUrlTree(['/home']);
 };
 
 export const routes: Routes = [
