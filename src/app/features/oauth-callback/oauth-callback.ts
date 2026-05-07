@@ -45,7 +45,14 @@ export class OAuthCallbackComponent implements OnInit {
     // Exchange the refresh token via gateway — this sets HttpOnly cookies on the gateway domain
     this.auth.refresh(refreshToken).subscribe({
       next: () => {
-        if (isNewUser && pendingRole && (pendingRole === 'DRIVER' || pendingRole === 'MANAGER')) {
+        const currentRole = params.get('role');
+        const shouldApplyPendingRole =
+          pendingRole &&
+          (pendingRole === 'DRIVER' || pendingRole === 'MANAGER') &&
+          currentRole !== 'ADMIN' &&
+          (isNewUser || currentRole !== pendingRole);
+
+        if (shouldApplyPendingRole) {
           this.status = 'Setting up your account…';
           this.auth.selectRole(pendingRole).subscribe({
             next:  () => { this.router.navigate(['/dashboard']); },

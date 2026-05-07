@@ -348,6 +348,12 @@ export class LandingComponent {
   }
 
   googleLogin() {
+    const role = this.selected();
+    if (role === 'DRIVER' || role === 'MANAGER') {
+      sessionStorage.setItem('pending_oauth_role', role);
+    } else {
+      sessionStorage.removeItem('pending_oauth_role');
+    }
     window.location.href = `${environment.authServiceUrl}/oauth2/authorize/google`;
   }
 }
