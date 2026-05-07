@@ -6,7 +6,6 @@ import { AuthService } from './core/services/auth.service';
 const authGuard = () => {
   const auth = inject(AuthService);
   const router = inject(Router);
-  // Use in-memory signal (set synchronously by storeSession) with sessionStorage as fallback
   const isLoggedIn = auth.isLoggedIn() || !!sessionStorage.getItem('access_token');
   return isLoggedIn ? true : router.createUrlTree(['/home']);
 };
