@@ -99,7 +99,7 @@ export class ParkingService {
 
   // ── Polling ───────────────────────────────────────────────────────
   pollSpots(lotId: number): Observable<ParkingSpot[]> {
-    return interval(15000).pipe(
+    return interval(60_000).pipe(
       startWith(0),
       switchMap(() => this.getSpots(lotId)),
       shareReplay(1)
@@ -107,7 +107,7 @@ export class ParkingService {
   }
 
   pollAvailability(lotId: number): Observable<LotAvailability> {
-    return interval(15000).pipe(
+    return interval(60_000).pipe(
       startWith(0),
       switchMap(() => this.getAvailability(lotId)),
       shareReplay(1)

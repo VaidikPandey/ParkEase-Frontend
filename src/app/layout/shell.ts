@@ -33,7 +33,7 @@ export class ShellComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.notif.pollUnread();
-    interval(10_000)
+    interval(60_000)
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => {
         const prev = this.notif.unreadCount();
